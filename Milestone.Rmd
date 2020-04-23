@@ -1,0 +1,207 @@
+---
+title: "Millestone Report"
+author: "Sarah Delaney"
+date: "4/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Synopsis
+This is the Milestone Report for the Coursera Data Scientist Capstone project. 
+
+ 
+
+
+```{r loadPackages, echo = TRUE, message = FALSE}
+rm(list=(ls()))
+
+require(RCurl)
+require(readr)
+require(dplyr)
+require(sqldf)
+require(quanteda)
+require(ggplot2)
+
+```
+
+### Data Processing
+
+####  Get External Data 
+The external files with downloaded with RCurl. 
+
+```{r getData, echo = TRUE}
+
+# get profanity file
+if (!file.exists("./data/badwords.txt")){ 
+profanityURL <- "https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/badwordslist/badwords.txt"
+download.file(profanityURL, "./data/badwords.txt", method = "curl")}
+
+# get main data
+if (!file.exists("./data/Coursera-SwiftKey.zip")) { 
+fileURL <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+download.file(fileURL, "./data/Coursera-SwiftKey.zip", method = "curl")}
+
+if (!file.exists("./data/final/en_US/en_US.blogs.txt")) { 
+unzip(zipfile = "./data/Coursera-SwiftKey.zip")}
+fileListing <- list.files("./final/en_US")
+print(fileListing)  
+
+
+
+
+```
+
+
+####  Load Data 
+Initial load used UTF-8 encoding and skipped nulls. Record counts match examination of the files with Notepad++.
+
+```{r loadData, echo = TRUE}
+# Working files names simplied as blogs, news and twitter.
+# readr package read_lines required for news file's nulls
+
+# load profanity file("./data/)
+profanity <- readLines("./data/badwords.txt")
+profanity <- tolower(profanity)
+profanity_rowCnt <- length(profanity) 
+
+# load main files
+blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul = TRUE) 
+blogs_rowCnt <- length(blogs)  # 899,288
+
+news <- read_lines("./final/en_US/en_US.news.txt")
+news_rowCnt <-length(news) # 1,010,242
+
+twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE)  # 
+twitter_rowCnt <-length(twitter) # 2,360,148
+
+# track rowcounts
+fileNames <- c("profanity", "blogs", "news", "twitter")
+initial_rowCnts <- c(profanity_rowCnt, blogs_rowCnt, news_rowCnt, twitter_rowCnt )
+Control_Totals <- data.frame(fileNames, initial_rowCnts)
+print(Control_Totals)
+
+# save originals 
+saveRDS(blogs, "./data/blogs.rds")
+saveRDS(news, "./data/news.rds")
+saveRDS(twitter, "./data/twitter.rds")
+
+
+
+```
+
+Initial load row counts by file:
+blogs has  `r blogs_rowCnt` rows
+news has `r news_rowCnt` rows
+twitter has `r twitter_rowCnt` rows
+
+
+#### Replace specific profanity words with 'profanity'
+
+```{r replaceProfanity, echo = TRUE}
+
+
+
+
+
+
+
+
+```
+
+#### Create Corpus, clean, convert and stem
+Remove punctuation, numbers, and English stopwords, Convert to lowercase and then stem the words.
+
+```{r createCoprpus, echo = TRUE}
+
+# create corpus
+blogs_corpus <- corpus(blogs)
+news_corpus <- corpus(news)
+twitter_corpus <- corpus(twitter)
+
+
+lemma <- rep("profanity", length(profanity))
+
+
+blogs_tokens <- tokens(blogs_corpus
+                , remove_punct = TRUE 
+                , remove_numbers = TRUE) %>% 
+        tokens_select( stopwords('english')
+                , selection = 'remove') %>%
+        tokens_tolower() %>%
+        tokens_replace(profanity, lemma, valuetype="fixed") %>%
+        tokens_wordstem() 
+                
+
+news_tokens <- tokens(news_corpus
+                , remove_punct = TRUE 
+                , remove_numbers = TRUE) %>% 
+        tokens_select( stopwords('english')
+                , selection = 'remove') %>%
+        tokens_tolower() %>%
+        tokens_replace(profanity, lemma, valuetype="fixed") %>%
+        tokens_wordstem() 
+
+                
+twitter_tokens <- tokens(twitter_corpus
+                , remove_punct = TRUE 
+                , remove_numbers = TRUE) %>% 
+        tokens_select( stopwords('english')
+                , selection = 'remove') %>%
+        tokens_tolower() %>%
+        tokens_replace(profanity, lemma, valuetype="fixed") %>%
+        tokens_wordstem() 
+
+
+# close originals
+rm(list = c("blogs", "news", "twitter"))
+                
+
+```
+
+
+#### Explore data
+```{r exploreData, echo = TRUE}
+
+ndoc(blogs_tokens)    # 899288        
+head(blogs_tokens)
+blogs_featureCnt <- nfeat(dfm(blogs_tokens)) # 300865
+
+
+ndoc(news_tokens)    #     
+head(news_tokens)
+news_featureCnt <- nfeat(dfm(news_tokens)) # 
+
+ndoc(twitter_tokens)    #     
+head(twitter_tokens)
+twitter_featureCnt <- nfeat(dfm(twitter_tokens)) # 
+
+# Count Features and add to Control_Totals
+featureCnts <- c(blogs_featureCnt, news_featureCnt, twitter_featureCnt)
+featureCntsDF <- data.frame(fileNames, featureCnts)
+
+merge(Control_Totals, featureCntsDF)
+
+```
+
+
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r Plots, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
