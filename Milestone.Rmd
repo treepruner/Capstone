@@ -11,9 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ### Synopsis
-This is the Milestone Report for the Coursera Data Scientist Capstone project. 
-
- 
+This is the Milestone Report for the Coursera Data Scientist Capstone project. The project has 3 sources of text information 
+* blog
+* news
+* twitter
+that will be used to predict the most likely word to appear. The plan is to allow users to input 1 to 3 words.
 
 
 ```{r loadPackages, echo = TRUE, message = FALSE}
@@ -84,10 +86,11 @@ initial_rowCnts <- c(profanity_rowCnt, blogs_rowCnt, news_rowCnt, twitter_rowCnt
 Control_Totals <- data.frame(fileNames, initial_rowCnts)
 print(Control_Totals)
 
-# save originals 
+# save originals if they don't exist
+if (!file.exists("./data/blogs.rd")) { 
 saveRDS(blogs, "./data/blogs.rds")
 saveRDS(news, "./data/news.rds")
-saveRDS(twitter, "./data/twitter.rds")
+saveRDS(twitter, "./data/twitter.rds") }
 
 
 
@@ -156,7 +159,7 @@ twitter_tokens <- tokens(twitter_corpus
         tokens_wordstem() 
 
 
-# close originals
+# close main files
 rm(list = c("blogs", "news", "twitter"))
                 
 
@@ -198,7 +201,7 @@ merge(Control_Totals, featureCntsDF)
 You can also embed plots, for example:
 
 ```{r Plots, echo=FALSE}
-plot(pressure)
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
