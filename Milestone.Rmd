@@ -42,7 +42,7 @@ require(ggplot2)
 ####  Get External Data 
 Download the external files with RCurl. 
 
-```{r getData, echo = TRUE}
+```{r getData, echo = FALSE}
 
 # get profanity reference file
 if (!file.exists("./data/badwords.txt")){ 
@@ -63,17 +63,18 @@ print(fileListing)
 
 
 ####  Load Data 
+Load text files with UTF-8 encoding and skip nulls. 
 Record counts matched examination of the files with Notepad++.
 
 #### Profanity file 
 Load "bad words" file from Google.
 
-```{r loadProfanity, echo = TRUE}
+```{r loadProfanity, echo = FALSE}
 # read in
 profanity <- readLines("./data/badwords.txt", encoding = "UTF-8", skipNul = TRUE,  warn = FALSE)
 
 # raw data examples and counts 
-profanity_ex <- head(profanity,2)
+profanity_example <- head(profanity,2)
 profanity_rowCnt <- length(profanity) 
 
 
@@ -86,7 +87,7 @@ lemma <- rep("profanity", length(profanity))
 
 # examples
 print("Profanity file original" )
-print(profanity_ex)
+print(profanity_example)
 
 
 
@@ -97,14 +98,14 @@ print(profanity_ex)
 #### News file
 readr package read_lines function required for the news file.
 
-```{r loadNews, echo = TRUE}
+```{r loadNews, echo = FALSE}
 # readr package read_lines required for news file's nulls.
 
 # read in
 news <- read_lines("./final/en_US/en_US.news.txt")
 
 # raw data examples and counts 
-news_ex <- as.data.frame( head(news,1,))
+news_example <- as.data.frame( head(news,1,))
 news_rowCnt <-length(news) # 1,010,242
 
 # Corpus and cleaning
@@ -124,14 +125,14 @@ news_tokens <- tokens(news_corpus
         tokens_wordstem() 
 
 # capture corpus examples and counts
-news_tokens_ex <- head(news_tokens,1)
+news_tokens_example <- head(news_tokens,1)
 news_tokensCnt <- ndoc(news_tokens)    # 1,010,242    
 news_featureCnt <- nfeat(dfm(news_tokens)) # 274,774
 
 # examples
 print("News file original and tokens" )
-print(news_ex)
-print(news_tokens_ex)
+print(news_example)
+print(news_tokens_example)
 
 # counts
 Labels <- c("Source", "Original", "Tokens", "Features")
@@ -147,13 +148,13 @@ rm("news")
 
 ```
 #### Blogs file
-```{r loadBlogs, echo = TRUE}
+```{r loadBlogs, echo = FALSE}
 
 # read in
 blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul = TRUE) 
 
 # raw data examples and counts
-blogs_ex <-  as.data.frame( head(blogs,1))
+blogs_example <-  as.data.frame( head(blogs,1))
 blogs_rowCnt <- length(blogs)  # 899,288
 
 # Corpus and cleaning
@@ -173,14 +174,14 @@ blogs_tokens <- tokens(blogs_corpus
         tokens_wordstem() 
 
 # capture corpus examples and counts
-blogs_tokens_ex <- head(blogs_tokens,1)  
+blogs_tokens_example <- head(blogs_tokens,1)  
 blogs_tokensCnt <- ndoc(blogs_tokens)    #  899288   
 blogs_featureCnt <- nfeat(dfm(blogs_tokens)) # 300865
 
 # examples
 print("Blogs file original and tokens" )
-print(blogs_ex)
-print(blogs_tokens_ex)
+print(blogs_example)
+print(blogs_tokens_example)
 
 # counts
 Labels <- c("Source", "Original", "Tokens", "Features")
@@ -201,13 +202,13 @@ rm("blogs")
 
 
 #### Twitter file
-```{r loadTwitter, echo = TRUE}
+```{r loadTwitter, echo = FALSE}
 
 # read in
 twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE)   
 
 # raw data examples and counts
-twitter_ex <-  as.data.frame( head(twitter,1))
+twitter_example <-  as.data.frame( head(twitter,1))
 twitter_rowCnt <-length(twitter) # 2,360,148
 
 
@@ -229,18 +230,18 @@ twitter_tokens <- tokens(twitter_corpus
         tokens_wordstem() 
 
 # capture corpus examples and counts
-twitter_tokens_ex <- head(twitter_tokens,1)  
+twitter_tokens_example <- head(twitter_tokens,1)  
 twitter_tokensCnt <- ndoc(twitter_tokens)    #     
 twitter_featureCnt <- nfeat(dfm(twitter_tokens)) # 
 
 # examples
 print("Twitters file original and tokens" )
-print(twitter_ex)
-print(twitter_tokens_ex)
+print(twitter_example)
+print(twitter_tokens_example)
 
 # counts
 Labels <- c("Source", "Original", "Tokens", "Features")
-twitter_Counts <- c("twitters", twitter_rowCnt, twitter_tokensCnt, twitter_featureCnt )
+twitter_Counts <- c("twitter", twitter_rowCnt, twitter_tokensCnt, twitter_featureCnt )
 twitter_controlTotals <- data.frame(Labels, twitter_Counts)
 print(twitter_controlTotals)
 
