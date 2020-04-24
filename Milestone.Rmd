@@ -31,6 +31,7 @@ require(RCurl)
 require(readr)
 require(profr)
 require(dplyr)
+require(tibble)
 require(sqldf)
 require(quanteda)
 require(ggplot2)
@@ -85,6 +86,7 @@ profanity <- tolower(profanity)
 # make specific profanity a generic literal
 lemma <- rep("profanity", length(profanity))
 
+
 # examples
 print("Profanity file original" )
 print(profanity_example)
@@ -135,16 +137,26 @@ print(news_example)
 print(news_tokens_example)
 
 # counts
-Labels <- c("Source", "Original", "Tokens", "Features")
+Labels <- c("Source", "Original Rows", "Tokens Counted", "Features (Words) Counted")
 news_Counts <- c("news", news_rowCnt, news_tokensCnt, news_featureCnt )
 news_controlTotals <- data.frame(Labels, news_Counts)
 print(news_controlTotals)
 
 # save originals if they don't exist
-if (!file.exists("./data/news.rd")) { saveRDS(news, "./data/news.rds") }
+if (!file.exists("./data/news.rds")) { saveRDS(news, "./data/news.rds") }
 
 # close raw file
 rm("news")
+
+#top features
+News_Top_1000_Features <- rownames_to_column(as.data.frame(topfeatures(dfm(news_tokens)
+        , n = 1000
+        , decreasing = TRUE
+        , scheme = c("count", "docfreq")
+        , groups = NULL)), var = "Word")
+
+print(News_Top_1000_Features)
+
 
 ```
 #### Blogs file
@@ -184,17 +196,29 @@ print(blogs_example)
 print(blogs_tokens_example)
 
 # counts
-Labels <- c("Source", "Original", "Tokens", "Features")
+Labels <- c("Source", "Original Rows", "Tokens Counted", "Features (Words) Counted")
 blogs_Counts <- c("blogs", blogs_rowCnt, blogs_tokensCnt, blogs_featureCnt )
 blogs_controlTotals <- data.frame(Labels, blogs_Counts)
 print(blogs_controlTotals)
 
 
 # save originals if they don't exist
-if (!file.exists("./data/blogs.rd")) { saveRDS(blogs, "./data/blogs.rds")}
+if (!file.exists("./data/blogs.rds")) { saveRDS(blogs, "./data/blogs.rds")}
 
 # close raw file
 rm("blogs")
+
+#top features
+Blogs_Top_1000_Features <- topfeatures(dfm(blogs_tokens)
+        , n = 1000
+        , decreasing = TRUE
+        , scheme = c("count", "docfreq")
+        , groups = NULL)
+class(Blogs_Top_1000_Features)
+
+print(Blogs_Top_1000_Features)
+
+
 
 
 ```
@@ -240,17 +264,28 @@ print(twitter_example)
 print(twitter_tokens_example)
 
 # counts
-Labels <- c("Source", "Original", "Tokens", "Features")
+Labels <- c("Source", "Original Rows", "Tokens Counted", "Features (Words) Counted")
 twitter_Counts <- c("twitter", twitter_rowCnt, twitter_tokensCnt, twitter_featureCnt )
 twitter_controlTotals <- data.frame(Labels, twitter_Counts)
 print(twitter_controlTotals)
 
 
 # save originals if they don't exist
-if (!file.exists("./data/twitter.rd")) {saveRDS(twitter, "./data/twitter.rds") }
+if (!file.exists("./data/twitter.rds")) {saveRDS(twitter, "./data/twitter.rds") }
 
 # close raw file
 rm("twitter")
+
+
+#top features
+Twitter_Top_1000_Features <- topfeatures(dfm(twitter_tokens)
+        , n = 1000
+        , decreasing = TRUE
+        , scheme = c("count", "docfreq")
+        , groups = NULL)
+
+print(Twitters_Top_1000_Features)
+
 
 ```
 
