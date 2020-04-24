@@ -16,11 +16,11 @@ This is the Milestone Report for the Coursera Data Scientist Capstone project to
 * en_US.news.txt
 * en_US.twitter.txt
 
-The news file is written in standard, business English from an objective viewpoint. The blog file is more conversational English centered around personal experiences. The twitter file is filled with slang, abbreviations, profanity, emojois that in some cases may only be understood by the twitter user's followers. 
+The news file is written in standard, business English from an objective viewpoint. The blog file is more conversational English centered around personal experiences. The twitter file is filled with slang, abbreviations, profanity, emojois that in some cases may only be completely understood by the twitter user's followers. 
 
 As a result of the differing adherence to standard English in the reference texts, the plan is to weight word associations in the news file the highest, the blog file lower and to perhaps ignore the twitter file completely. 
 
-Specific profanity identified by the 458 "badwords" from Google will be replaced with the literal string 'profanity'.
+Specific profanity identified by the 458 "bad words" from Google will be replaced with the literal string 'profanity'.
 
 
 
@@ -63,28 +63,55 @@ print(fileListing)
 
 
 ####  Load Data 
-Initial load with UTF-8 encoding and skipped nulls. 
-Record counts match examination of the files with Notepad++.
-readr package read_lines required for news file's nulls.
+Record counts matched examination of the files with Notepad++.
+
+#### Profanity file 
+Load "bad words" file from Google.
 
 ```{r loadProfanity, echo = TRUE}
+# read in
+profanity <- readLines("./data/badwords.txt", encoding = "UTF-8", skipNul = TRUE,  warn = FALSE)
 
-# load profanity reference file
-profanity <- readLines("./data/badwords.txt")
-profanity <- tolower(profanity)
+# raw data examples and counts 
+profanity_ex <- head(profanity,2)
 profanity_rowCnt <- length(profanity) 
+
+
+# change to lowercase
+profanity <- tolower(profanity)
+
+
+# make specific profanity a generic literal
+lemma <- rep("profanity", length(profanity))
+
+# examples
+print("Profanity file original" )
+print(profanity_ex)
+
+
 
 ```
 
 
 
+#### News file
+readr package read_lines function required for the news file.
 
-```{r loadProfanity, echo = TRUE}
+```{r loadNews, echo = TRUE}
+# readr package read_lines required for news file's nulls.
 
-# news
+# read in
 news <- read_lines("./final/en_US/en_US.news.txt")
+
+# raw data examples and counts 
+news_ex <- as.data.frame( head(news,1,))
 news_rowCnt <-length(news) # 1,010,242
 
+# Corpus and cleaning
+# Remove punctuation, numbers, and English stopwords, 
+# Change to lowercase
+# Replace any specific profade word with the literal "profanity"
+# Stem the words.
 news_corpus <- corpus(news)
 
 news_tokens <- tokens(news_corpus
@@ -96,16 +123,44 @@ news_tokens <- tokens(news_corpus
         tokens_replace(profanity, lemma, valuetype="fixed") %>%
         tokens_wordstem() 
 
+# capture corpus examples and counts
+news_tokens_ex <- head(news_tokens,1)
+news_tokensCnt <- ndoc(news_tokens)    # 1,010,242    
+news_featureCnt <- nfeat(dfm(news_tokens)) # 274,774
+
+# examples
+print("News file original and tokens" )
+print(news_ex)
+print(news_tokens_ex)
+
+# counts
+Labels <- c("Source", "Original", "Tokens", "Features")
+news_Counts <- c("news", news_rowCnt, news_tokensCnt, news_featureCnt )
+news_controlTotals <- data.frame(Labels, news_Counts)
+print(news_controlTotals)
+
+# save originals if they don't exist
+if (!file.exists("./data/news.rd")) { saveRDS(news, "./data/news.rds") }
+
+# close raw file
 rm("news")
 
 ```
-
+#### Blogs file
 ```{r loadBlogs, echo = TRUE}
 
-# blogs
+# read in
 blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul = TRUE) 
+
+# raw data examples and counts
+blogs_ex <-  as.data.frame( head(blogs,1))
 blogs_rowCnt <- length(blogs)  # 899,288
 
+# Corpus and cleaning
+# Remove punctuation, numbers, and English stopwords, 
+# Change to lowercase
+# Replace any specific profade word with the literal "profanity"
+# Stem the words.
 blogs_corpus <- corpus(blogs)
 
 blogs_tokens <- tokens(blogs_corpus
@@ -117,17 +172,50 @@ blogs_tokens <- tokens(blogs_corpus
         tokens_replace(profanity, lemma, valuetype="fixed") %>%
         tokens_wordstem() 
 
+# capture corpus examples and counts
+blogs_tokens_ex <- head(blogs_tokens,1)  
+blogs_tokensCnt <- ndoc(blogs_tokens)    #  899288   
+blogs_featureCnt <- nfeat(dfm(blogs_tokens)) # 300865
+
+# examples
+print("Blogs file original and tokens" )
+print(blogs_ex)
+print(blogs_tokens_ex)
+
+# counts
+Labels <- c("Source", "Original", "Tokens", "Features")
+blogs_Counts <- c("blogs", blogs_rowCnt, blogs_tokensCnt, blogs_featureCnt )
+blogs_controlTotals <- data.frame(Labels, blogs_Counts)
+print(blogs_controlTotals)
+
+
+# save originals if they don't exist
+if (!file.exists("./data/blogs.rd")) { saveRDS(blogs, "./data/blogs.rds")}
+
+# close raw file
 rm("blogs")
+
 
 ```
 
 
 
-
+#### Twitter file
 ```{r loadTwitter, echo = TRUE}
-# twitter
-twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE)  # 
+
+# read in
+twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE)   
+
+# raw data examples and counts
+twitter_ex <-  as.data.frame( head(twitter,1))
 twitter_rowCnt <-length(twitter) # 2,360,148
+
+
+# Corpus and cleaning
+# Remove punctuation, numbers, and English stopwords, 
+# Change to lowercase
+# Replace any specific profade word with the literal "profanity"
+# Stem the words.
 
 twitter_corpus <- corpus(twitter)                
 
@@ -140,38 +228,31 @@ twitter_tokens <- tokens(twitter_corpus
         tokens_replace(profanity, lemma, valuetype="fixed") %>%
         tokens_wordstem() 
 
+# capture corpus examples and counts
+twitter_tokens_ex <- head(twitter_tokens,1)  
+twitter_tokensCnt <- ndoc(twitter_tokens)    #     
+twitter_featureCnt <- nfeat(dfm(twitter_tokens)) # 
+
+# examples
+print("Twitters file original and tokens" )
+print(twitter_ex)
+print(twitter_tokens_ex)
+
+# counts
+Labels <- c("Source", "Original", "Tokens", "Features")
+twitter_Counts <- c("twitters", twitter_rowCnt, twitter_tokensCnt, twitter_featureCnt )
+twitter_controlTotals <- data.frame(Labels, twitter_Counts)
+print(twitter_controlTotals)
+
+
+# save originals if they don't exist
+if (!file.exists("./data/twitter.rd")) {saveRDS(twitter, "./data/twitter.rds") }
+
+# close raw file
 rm("twitter")
 
 ```
 
-# save originals if they don't exist
-if (!file.exists("./data/blogs.rd")) { saveRDS(blogs, "./data/blogs.rds")}
-if (!file.exists("./data/news.rd")) { saveRDS(news, "./data/news.rds") }
-if (!file.exists("./data/twitter.rd")) {saveRDS(twitter, "./data/twitter.rds") }
-
-
-# track rowcounts
-fileNames <- c("profanity", "blogs", "news", "twitter")
-initial_rowCnts <- c(profanity_rowCnt, blogs_rowCnt, news_rowCnt, twitter_rowCnt )
-Control_Totals <- data.frame(fileNames, initial_rowCnts)
-print(Control_Totals)
-
-
-
-```
-
-
-
-
-#### Create Corpus, clean, convert, and stem
-Remove punctuation, numbers, and English stopwords, Convert to lowercase, replace any specific profade word with the literal "profanity" and then stem the words.
-
-```{r createCoprpus, echo = TRUE}
-
-# make specific profanity a generic literal
-lemma <- rep("profanity", length(profanity))
-
-# create corpus
 
 
 
@@ -180,48 +261,8 @@ lemma <- rep("profanity", length(profanity))
 
 
 
-```
 
 
-#### Explore data
-```{r exploreData, echo = TRUE}
-
-ndoc(blogs_tokens)    # 899288        
-head(blogs_tokens)
-blogs_featureCnt <- nfeat(dfm(blogs_tokens)) # 300865
-
-
-ndoc(news_tokens)    #     
-head(news_tokens)
-news_featureCnt <- nfeat(dfm(news_tokens)) # 
-
-ndoc(twitter_tokens)    #     
-head(twitter_tokens)
-twitter_featureCnt <- nfeat(dfm(twitter_tokens)) # 
-
-# Count Features and add to Control_Totals
-featureCnts <- c(NA, blogs_featureCnt, news_featureCnt, twitter_featureCnt)
-featureCntsDF <- data.frame(fileNames, featureCnts)
-
-merge(Control_Totals, featureCntsDF)
-
-```
-
-
-
-
-
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r Plots, echo=FALSE}
-
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 
 
