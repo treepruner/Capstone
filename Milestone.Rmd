@@ -11,11 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ### Synopsis
-This is the Milestone Report for the Coursera Data Scientist Capstone project. The project has 3 sources of text information 
-* blog
-* news
-* twitter
-that will be used to predict the most likely word to appear. The plan is to allow users to input 1 to 3 words.
+This is the Milestone Report for the Coursera Data Scientist Capstone project to produce a word prediction application. The project has 3 sources of text information: 
+* en_US.blogs.txt
+* en_US.news.txt
+* en_US.twitter.txt
+
+The news file is written in standard, business English from an objective viewpoint. The blog file is more conversational English centered around personal experiences. The twitter file is filled with slang, abbreviations, profanity, emojois that in some cases may only be understood by the twitter user's followers. 
+
+As a result of the differing adherence to standard English in the reference texts, the plan is to weight word associations in the news file the highest, the blog file lower and to perhaps ignore the twitter file completely. 
+
+Specific profanity identified by the 458 "badwords" from Google will be replaced with the literal string 'profanity'.
+
 
 
 ```{r loadPackages, echo = TRUE, message = FALSE}
@@ -23,6 +29,7 @@ rm(list=(ls()))
 
 require(RCurl)
 require(readr)
+require(profr)
 require(dplyr)
 require(sqldf)
 require(quanteda)
@@ -33,11 +40,11 @@ require(ggplot2)
 ### Data Processing
 
 ####  Get External Data 
-The external files with downloaded with RCurl. 
+Download the external files with RCurl. 
 
 ```{r getData, echo = TRUE}
 
-# get profanity file
+# get profanity reference file
 if (!file.exists("./data/badwords.txt")){ 
 profanityURL <- "https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/badwordslist/badwords.txt"
 download.file(profanityURL, "./data/badwords.txt", method = "curl")}
@@ -47,97 +54,38 @@ if (!file.exists("./data/Coursera-SwiftKey.zip")) {
 fileURL <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
 download.file(fileURL, "./data/Coursera-SwiftKey.zip", method = "curl")}
 
-if (!file.exists("./data/final/en_US/en_US.blogs.txt")) { 
-unzip(zipfile = "./data/Coursera-SwiftKey.zip")}
+if (!file.exists("./final/en_US/en_US.blogs.txt")) { unzip(zipfile = "./data/Coursera-SwiftKey.zip")}
 fileListing <- list.files("./final/en_US")
 print(fileListing)  
-
-
 
 
 ```
 
 
 ####  Load Data 
-Initial load used UTF-8 encoding and skipped nulls. Record counts match examination of the files with Notepad++.
+Initial load with UTF-8 encoding and skipped nulls. 
+Record counts match examination of the files with Notepad++.
+readr package read_lines required for news file's nulls.
 
-```{r loadData, echo = TRUE}
-# Working files names simplied as blogs, news and twitter.
-# readr package read_lines required for news file's nulls
+```{r loadProfanity, echo = TRUE}
 
-# load profanity file("./data/)
+# load profanity reference file
 profanity <- readLines("./data/badwords.txt")
 profanity <- tolower(profanity)
 profanity_rowCnt <- length(profanity) 
 
-# load main files
-blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul = TRUE) 
-blogs_rowCnt <- length(blogs)  # 899,288
+```
 
+
+
+
+```{r loadProfanity, echo = TRUE}
+
+# news
 news <- read_lines("./final/en_US/en_US.news.txt")
 news_rowCnt <-length(news) # 1,010,242
 
-twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE)  # 
-twitter_rowCnt <-length(twitter) # 2,360,148
-
-# track rowcounts
-fileNames <- c("profanity", "blogs", "news", "twitter")
-initial_rowCnts <- c(profanity_rowCnt, blogs_rowCnt, news_rowCnt, twitter_rowCnt )
-Control_Totals <- data.frame(fileNames, initial_rowCnts)
-print(Control_Totals)
-
-# save originals if they don't exist
-if (!file.exists("./data/blogs.rd")) { 
-saveRDS(blogs, "./data/blogs.rds")
-saveRDS(news, "./data/news.rds")
-saveRDS(twitter, "./data/twitter.rds") }
-
-
-
-```
-
-Initial load row counts by file:
-blogs has  `r blogs_rowCnt` rows
-news has `r news_rowCnt` rows
-twitter has `r twitter_rowCnt` rows
-
-
-#### Replace specific profanity words with 'profanity'
-
-```{r replaceProfanity, echo = TRUE}
-
-
-
-
-
-
-
-
-```
-
-#### Create Corpus, clean, convert and stem
-Remove punctuation, numbers, and English stopwords, Convert to lowercase and then stem the words.
-
-```{r createCoprpus, echo = TRUE}
-
-# create corpus
-blogs_corpus <- corpus(blogs)
 news_corpus <- corpus(news)
-twitter_corpus <- corpus(twitter)
-
-
-lemma <- rep("profanity", length(profanity))
-
-
-blogs_tokens <- tokens(blogs_corpus
-                , remove_punct = TRUE 
-                , remove_numbers = TRUE) %>% 
-        tokens_select( stopwords('english')
-                , selection = 'remove') %>%
-        tokens_tolower() %>%
-        tokens_replace(profanity, lemma, valuetype="fixed") %>%
-        tokens_wordstem() 
-                
 
 news_tokens <- tokens(news_corpus
                 , remove_punct = TRUE 
@@ -148,7 +96,41 @@ news_tokens <- tokens(news_corpus
         tokens_replace(profanity, lemma, valuetype="fixed") %>%
         tokens_wordstem() 
 
-                
+rm("news")
+
+```
+
+```{r loadBlogs, echo = TRUE}
+
+# blogs
+blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul = TRUE) 
+blogs_rowCnt <- length(blogs)  # 899,288
+
+blogs_corpus <- corpus(blogs)
+
+blogs_tokens <- tokens(blogs_corpus
+                , remove_punct = TRUE 
+                , remove_numbers = TRUE) %>% 
+        tokens_select( stopwords('english')
+                , selection = 'remove') %>%
+        tokens_tolower() %>%
+        tokens_replace(profanity, lemma, valuetype="fixed") %>%
+        tokens_wordstem() 
+
+rm("blogs")
+
+```
+
+
+
+
+```{r loadTwitter, echo = TRUE}
+# twitter
+twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE)  # 
+twitter_rowCnt <-length(twitter) # 2,360,148
+
+twitter_corpus <- corpus(twitter)                
+
 twitter_tokens <- tokens(twitter_corpus
                 , remove_punct = TRUE 
                 , remove_numbers = TRUE) %>% 
@@ -158,10 +140,45 @@ twitter_tokens <- tokens(twitter_corpus
         tokens_replace(profanity, lemma, valuetype="fixed") %>%
         tokens_wordstem() 
 
+rm("twitter")
 
-# close main files
-rm(list = c("blogs", "news", "twitter"))
-                
+```
+
+# save originals if they don't exist
+if (!file.exists("./data/blogs.rd")) { saveRDS(blogs, "./data/blogs.rds")}
+if (!file.exists("./data/news.rd")) { saveRDS(news, "./data/news.rds") }
+if (!file.exists("./data/twitter.rd")) {saveRDS(twitter, "./data/twitter.rds") }
+
+
+# track rowcounts
+fileNames <- c("profanity", "blogs", "news", "twitter")
+initial_rowCnts <- c(profanity_rowCnt, blogs_rowCnt, news_rowCnt, twitter_rowCnt )
+Control_Totals <- data.frame(fileNames, initial_rowCnts)
+print(Control_Totals)
+
+
+
+```
+
+
+
+
+#### Create Corpus, clean, convert, and stem
+Remove punctuation, numbers, and English stopwords, Convert to lowercase, replace any specific profade word with the literal "profanity" and then stem the words.
+
+```{r createCoprpus, echo = TRUE}
+
+# make specific profanity a generic literal
+lemma <- rep("profanity", length(profanity))
+
+# create corpus
+
+
+
+
+
+
+
 
 ```
 
@@ -183,7 +200,7 @@ head(twitter_tokens)
 twitter_featureCnt <- nfeat(dfm(twitter_tokens)) # 
 
 # Count Features and add to Control_Totals
-featureCnts <- c(blogs_featureCnt, news_featureCnt, twitter_featureCnt)
+featureCnts <- c(NA, blogs_featureCnt, news_featureCnt, twitter_featureCnt)
 featureCntsDF <- data.frame(fileNames, featureCnts)
 
 merge(Control_Totals, featureCntsDF)
