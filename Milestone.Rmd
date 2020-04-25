@@ -12,15 +12,22 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Synopsis
 This is the Milestone Report for the Coursera Data Scientist Capstone project to produce a word prediction application. The project has 3 sources of text information: 
-* en_US.blogs.txt
-* en_US.news.txt
-* en_US.twitter.txt
+*en_US.blogs.txt
+*en_US.news.txt
+*en_US.twitter.txt
+*badwords.txt (from Google) 
 
-The news file is written in standard, business English from an objective viewpoint. The blog file is more conversational English centered around personal experiences. The twitter file is filled with slang, abbreviations, profanity, emojois that in some cases may only be completely understood by the twitter user's followers. 
+The news file is written in standard, business English from an objective viewpoint. The blog file is more conversational English centered around personal experiences. The twitter file is filled with slang, abbreviations, profanity, and emojois. In some cases the twitter file might only be completely understood by the twitter user's followers. 
 
-As a result of the differing adherence to standard English in the reference texts, the plan is to weight word associations in the news file the highest, the blog file lower and to perhaps ignore the twitter file completely. 
+The individual files were each converted with the package Quanteda into a separate corpus- a file format suitable for text analysis.  Once in a corpus format, each file was cleaned, standardized and  separated into a tokens file that contains relevent word roots.
 
-Specific profanity identified by the 458 "bad words" from Google will be replaced with the literal string 'profanity'.
+Transformations include:
+*Removed punctuation, numbers, and English stopwords such as "a", "an" "the", etc 
+*Changed to lowercase
+*Replaced any specific 458 profane wordd with the literal "profanity"
+*Stemmed the words to work with word roots
+
+The tokens files were then converted into a document-feature-matrix format to support analysis of top occuring word roots. The workclouds are graphically interesting, but the frequency relationships are much more obvious with bar plots. For readability, only the top 25 word roots were plotted.  Unsurprisingly, the news file used the word root "said" significantly more than any other word.
 
 
 
@@ -78,14 +85,11 @@ profanity <- readLines("./data/badwords.txt", encoding = "UTF-8", skipNul = TRUE
 profanity_example <- head(profanity,2)
 profanity_rowCnt <- length(profanity) 
 
-
 # change to lowercase
 profanity <- tolower(profanity)
 
-
 # make specific profanity a generic literal
 lemma <- rep("profanity", length(profanity))
-
 
 # examples
 print("Profanity file original" )
@@ -97,8 +101,8 @@ print(profanity_example)
 
 
 
-#### News file
-readr package read_lines function required for the news file.
+## News File
+readr package's read_lines function required for the news file.
 
 ```{r loadNews, echo = FALSE}
 # readr package read_lines required for news file's nulls.
@@ -111,10 +115,6 @@ news_example <- as.data.frame( head(news,1,))
 news_rowCnt <-length(news) # 1,010,242
 
 # Corpus and cleaning
-# Remove punctuation, numbers, and English stopwords, 
-# Change to lowercase
-# Replace any specific profade word with the literal "profanity"
-# Stem the words.
 news_corpus <- corpus(news)
 
 news_tokens <- tokens(news_corpus
@@ -145,21 +145,43 @@ print(news_controlTotals)
 # save originals if they don't exist
 if (!file.exists("./data/news.rds")) { saveRDS(news, "./data/news.rds") }
 
+if (!file.exists("./data/news_tokens.rds")) { saveRDS(news_tokens, "./data/news_tokens.rds") }
+
+
 # close raw file
 rm("news")
 
-#top features
-News_Top_1000_Features <- rownames_to_column(as.data.frame(topfeatures(dfm(news_tokens)
-        , n = 1000
-        , decreasing = TRUE
-        , scheme = c("count", "docfreq")
-        , groups = NULL)), var = "Word")
+# generate a DFM
+news_dfm <- dfm(news_tokens)
 
-print(News_Top_1000_Features)
+# frequency plot for top 100
+news_Top_25_dfm <- textstat_frequency(news_dfm, n = 25)
+
+# Sort by reverse frequency order
+news_Top_25_dfm$feature <- with(news_Top_25_dfm, reorder(feature, frequency))
+
+ggplot(news_Top_25_dfm, aes(y = feature, x = frequency)) +
+        geom_point() +
+        labs( title = "Top 25 News Word Roots") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1) )
+
+# does not work
+ggplot(news_Top_25_dfm, aes(x = frequency, y = feature ) +
+        geom_bar(stat ="identity", color = "blue", fille = "blue") +
+        labs( title = "Top 25 News Word Roots") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1)))
+
+
+# wordcloud
+textplot_wordcloud(news_dfm)
+
+
+
+
 
 
 ```
-#### Blogs file
+## Blogs
 ```{r loadBlogs, echo = FALSE}
 
 # read in
@@ -170,10 +192,6 @@ blogs_example <-  as.data.frame( head(blogs,1))
 blogs_rowCnt <- length(blogs)  # 899,288
 
 # Corpus and cleaning
-# Remove punctuation, numbers, and English stopwords, 
-# Change to lowercase
-# Replace any specific profade word with the literal "profanity"
-# Stem the words.
 blogs_corpus <- corpus(blogs)
 
 blogs_tokens <- tokens(blogs_corpus
@@ -205,18 +223,12 @@ print(blogs_controlTotals)
 # save originals if they don't exist
 if (!file.exists("./data/blogs.rds")) { saveRDS(blogs, "./data/blogs.rds")}
 
+if (!file.exists("./data/blogs_tokens.rds")) { saveRDS(blogs_tokens, "./data/blogs_tokens.rds") }
+
 # close raw file
 rm("blogs")
 
-#top features
-Blogs_Top_1000_Features <- topfeatures(dfm(blogs_tokens)
-        , n = 1000
-        , decreasing = TRUE
-        , scheme = c("count", "docfreq")
-        , groups = NULL)
-class(Blogs_Top_1000_Features)
 
-print(Blogs_Top_1000_Features)
 
 
 
@@ -225,7 +237,7 @@ print(Blogs_Top_1000_Features)
 
 
 
-#### Twitter file
+## Twitter
 ```{r loadTwitter, echo = FALSE}
 
 # read in
@@ -273,23 +285,18 @@ print(twitter_controlTotals)
 # save originals if they don't exist
 if (!file.exists("./data/twitter.rds")) {saveRDS(twitter, "./data/twitter.rds") }
 
+if (!file.exists("./data/twitter_tokens.rds")) { saveRDS(twitter_tokens, "./data/twitter_tokens.rds") }
+
 # close raw file
 rm("twitter")
 
 
-#top features
-Twitter_Top_1000_Features <- topfeatures(dfm(twitter_tokens)
-        , n = 1000
-        , decreasing = TRUE
-        , scheme = c("count", "docfreq")
-        , groups = NULL)
 
-print(Twitters_Top_1000_Features)
 
 
 ```
 
-
+## Comparison of Top 25 Features
 
 
 
