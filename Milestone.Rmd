@@ -147,41 +147,36 @@ if (!file.exists("./data/news.rds")) { saveRDS(news, "./data/news.rds") }
 
 if (!file.exists("./data/news_tokens.rds")) { saveRDS(news_tokens, "./data/news_tokens.rds") }
 
-
 # close raw file
 rm("news")
 
 # generate a DFM
 news_dfm <- dfm(news_tokens)
 
-# frequency plot for top 100
+# frequency plot for top 25
 news_Top_25_dfm <- textstat_frequency(news_dfm, n = 25)
-
-# Sort by reverse frequency order
 news_Top_25_dfm$feature <- with(news_Top_25_dfm, reorder(feature, frequency))
-
 ggplot(news_Top_25_dfm, aes(y = feature, x = frequency)) +
         geom_point() +
-        labs( title = "Top 25 News Word Roots") +
+        labs( title = "News", subtitle = "Top 25 Word Roots") +
         theme(axis.text.x = element_text(angle = 90, hjust = 1) )
-
-# does not work
-ggplot(news_Top_25_dfm, aes(x = frequency, y = feature ) +
-        geom_bar(stat ="identity", color = "blue", fille = "blue") +
-        labs( title = "Top 25 News Word Roots") +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1)))
-
 
 # wordcloud
 textplot_wordcloud(news_dfm)
 
+# close big files
+rm("news_tokens", "news_dfm")
 
-
-
+# Preserve freq
+news_Top_25_dfm <- news_Top_25_dfm %>% 
+        mutate (group = "news")
+print(news_Top_25_dfm)
 
 
 ```
 ## Blogs
+The word "one" is the most frequently occuring word root in the blogs file.
+
 ```{r loadBlogs, echo = FALSE}
 
 # read in
@@ -229,15 +224,34 @@ if (!file.exists("./data/blogs_tokens.rds")) { saveRDS(blogs_tokens, "./data/blo
 rm("blogs")
 
 
+# generate a DFM
+blogs_dfm <- dfm(blogs_tokens)
 
+# frequency plot for top 25
+blogs_Top_25_dfm <- textstat_frequency(blogs_dfm, n = 25)
+blogs_Top_25_dfm$feature <- with(blogs_Top_25_dfm, reorder(feature, frequency))
+ggplot(blogs_Top_25_dfm, aes(y = feature, x = frequency)) +
+        geom_point() +
+        labs( title = "blogs", subtitle = "Top 25 Word Roots") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1) )
 
+# wordcloud
+textplot_wordcloud(blogs_dfm)
 
+# close big files
+rm("blogs_tokens", "blogs_dfm")
+
+# Preserve freq
+blogs_Top_25_dfm <- blogs_Top_25_dfm %>% 
+        mutate (group = "blogs")
+print(blogs_Top_25_dfm)
 
 ```
 
 
 
 ## Twitter
+"just" is the most frequently occurring word in the twitter file and the 8th most frequently occurring is some form of profanity!
 ```{r loadTwitter, echo = FALSE}
 
 # read in
@@ -290,22 +304,43 @@ if (!file.exists("./data/twitter_tokens.rds")) { saveRDS(twitter_tokens, "./data
 # close raw file
 rm("twitter")
 
+# generate a DFM
+twitter_dfm <- dfm(twitter_tokens)
 
+# frequency plot for top 25
+twitter_Top_25_dfm <- textstat_frequency(twitter_dfm, n = 25)
+twitter_Top_25_dfm$feature <- with(twitter_Top_25_dfm, reorder(feature, frequency))
+ggplot(twitter_Top_25_dfm, aes(y = feature, x = frequency)) +
+        geom_point() +
+        labs( title = "twitter File", subtitle = "Top 25 Word Roots") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1) )
 
+# wordcloud
+textplot_wordcloud(twitter_dfm)
 
+# close big files
+rm("twitter_tokens", "twitter_dfm")
+
+# Preserve freq
+twitter_Top_25_dfm <- twitter_Top_25_dfm %>% 
+        mutate (group = "twitter")
+print(twitter_Top_25_dfm)
 
 ```
 
-## Comparison of Top 25 Features
+## Comparison of Top 25 Word Roots Across Files
+The chart below shows all the top 25 ranked word roots in descending rank. There is some overlap between files, but each file has a different most frequently occurring word root. For example, the word "said" is the #1 ranked word root in the news file, but it does not appear in the list of top 25 word roots in the other files and no dot is plotted.
+ 
+```{r loadTwitter, echo = FALSE}
+All_Top_25_dfm <- rbind(news_Top_25_dfm, blogs_Top_25_dfm, twitter_Top_25_dfm) 
+All_Top_25_dfm$feature <- with(All_Top_25_dfm, reorder(feature, -rank))
 
+ggplot(All_Top_25_dfm, aes(y = feature, x = frequency)) +
+        geom_point( aes(colour = rank)) +
+        facet_grid(.~ group) +
+        labs( title = "All", subtitle = "Top 25 Word Roots by Rank") +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1) )
 
-
-
-
-
-
-
-
-
+```
 
 
