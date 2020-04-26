@@ -19,15 +19,15 @@ This is the Milestone Report for the Coursera Data Scientist Capstone project to
 
 The news file is written in standard, business English from an objective viewpoint. The blog file is more conversational English centered around personal experiences. The twitter file is filled with slang, abbreviations, profanity, and emojois. In some cases the twitter file might only be completely understood by the twitter user's followers. 
 
-The individual files were each converted with the package Quanteda into a separate corpus- a file format suitable for text analysis.  Once in a corpus format, each file was cleaned, standardized and  separated into a tokens file that contains relevent word roots.
+The individual files were each converted with the package Quanteda into a separate corpus- a file format suitable for text analysis.  Once in a corpus format, each file was cleaned, standardized and  separated into a tokens file that contains only the relevent word roots.
 
 Transformations include:
-*Removed punctuation, numbers, and English stopwords such as "a", "an" "the", etc 
-*Changed to lowercase
-*Replaced any specific 458 profane wordd with the literal "profanity"
-*Stemmed the words to work with word roots
+*Remove punctuation, numbers, and English stopwords such as "a", "an" "the", etc 
+*Change to lowercase
+*Replace any specific 458 profane wordd with the literal "profanity"
+*Stem the words their common word roots
 
-The tokens files were then converted into a document-feature-matrix format to support analysis of top occuring word roots. The workclouds are graphically interesting, but the frequency relationships are much more obvious with bar plots. For readability, only the top 25 word roots were plotted.  Unsurprisingly, the news file used the word root "said" significantly more than any other word.
+The tokens files were then converted into a document-feature-matrix format to support analysis of top occuring word roots. The wordclouds are graphically interesting, but the frequency relationships are much more obvious with bar plots. For readability, only the top 25 word roots were plotted.  Unsurprisingly, the news file used the word root "said" significantly more than any other word.
 
 
 
@@ -64,15 +64,12 @@ download.file(fileURL, "./data/Coursera-SwiftKey.zip", method = "curl")}
 
 if (!file.exists("./final/en_US/en_US.blogs.txt")) { unzip(zipfile = "./data/Coursera-SwiftKey.zip")}
 fileListing <- list.files("./final/en_US")
-print(fileListing)  
-
-
 ```
 
 
 ####  Load Data 
 Load text files with UTF-8 encoding and skip nulls. 
-Record counts matched examination of the files with Notepad++.
+Record counts matched examination of the files with Notepad++ after accounting for blank lines.
 
 #### Profanity file 
 Load "bad words" file from Google.
@@ -92,17 +89,14 @@ profanity <- tolower(profanity)
 lemma <- rep("profanity", length(profanity))
 
 # examples
-print("Profanity file original" )
+print("Profanity file content sample:" )
 print(profanity_example)
-
-
-
 ```
 
 
 
 ## News File
-readr package's read_lines function required for the news file.
+readr package's read_lines function required for the news file. The word root "said" is the most frequently occurring word root.
 
 ```{r loadNews, echo = FALSE}
 # readr package read_lines required for news file's nulls.
@@ -132,7 +126,7 @@ news_tokensCnt <- ndoc(news_tokens)    # 1,010,242
 news_featureCnt <- nfeat(dfm(news_tokens)) # 274,774
 
 # examples
-print("News file original and tokens" )
+print("News file original and token content sample:" )
 print(news_example)
 print(news_tokens_example)
 
@@ -153,6 +147,10 @@ rm("news")
 # generate a DFM
 news_dfm <- dfm(news_tokens)
 
+# wordcloud
+print("News Wordcloud")
+textplot_wordcloud(news_dfm)
+
 # frequency plot for top 25
 news_Top_25_dfm <- textstat_frequency(news_dfm, n = 25)
 news_Top_25_dfm$feature <- with(news_Top_25_dfm, reorder(feature, frequency))
@@ -160,9 +158,6 @@ ggplot(news_Top_25_dfm, aes(y = feature, x = frequency)) +
         geom_point() +
         labs( title = "News", subtitle = "Top 25 Word Roots") +
         theme(axis.text.x = element_text(angle = 90, hjust = 1) )
-
-# wordcloud
-textplot_wordcloud(news_dfm)
 
 # close big files
 rm("news_tokens", "news_dfm")
@@ -223,9 +218,12 @@ if (!file.exists("./data/blogs_tokens.rds")) { saveRDS(blogs_tokens, "./data/blo
 # close raw file
 rm("blogs")
 
-
 # generate a DFM
 blogs_dfm <- dfm(blogs_tokens)
+
+# wordcloud
+print("Blogs Wordcloud")
+textplot_wordcloud(blogs_dfm)
 
 # frequency plot for top 25
 blogs_Top_25_dfm <- textstat_frequency(blogs_dfm, n = 25)
@@ -234,9 +232,6 @@ ggplot(blogs_Top_25_dfm, aes(y = feature, x = frequency)) +
         geom_point() +
         labs( title = "blogs", subtitle = "Top 25 Word Roots") +
         theme(axis.text.x = element_text(angle = 90, hjust = 1) )
-
-# wordcloud
-textplot_wordcloud(blogs_dfm)
 
 # close big files
 rm("blogs_tokens", "blogs_dfm")
@@ -307,6 +302,10 @@ rm("twitter")
 # generate a DFM
 twitter_dfm <- dfm(twitter_tokens)
 
+# wordcloud
+print("Twitter Wordcloud")
+textplot_wordcloud(twitter_dfm)
+
 # frequency plot for top 25
 twitter_Top_25_dfm <- textstat_frequency(twitter_dfm, n = 25)
 twitter_Top_25_dfm$feature <- with(twitter_Top_25_dfm, reorder(feature, frequency))
@@ -314,9 +313,6 @@ ggplot(twitter_Top_25_dfm, aes(y = feature, x = frequency)) +
         geom_point() +
         labs( title = "twitter File", subtitle = "Top 25 Word Roots") +
         theme(axis.text.x = element_text(angle = 90, hjust = 1) )
-
-# wordcloud
-textplot_wordcloud(twitter_dfm)
 
 # close big files
 rm("twitter_tokens", "twitter_dfm")
@@ -329,9 +325,9 @@ print(twitter_Top_25_dfm)
 ```
 
 ## Comparison of Top 25 Word Roots Across Files
-The chart below shows all the top 25 ranked word roots in descending rank. There is some overlap between files, but each file has a different most frequently occurring word root. For example, the word "said" is the #1 ranked word root in the news file, but it does not appear in the list of top 25 word roots in the other files and no dot is plotted.
+The chart below shows all the top 25 ranked word roots in descending rank. There is some overlap between files, but each file has a different most frequently occurring word root. For example, the word "said" is the #1 ranked word root in the news file, but it does not appear in the list of top 25 word roots in either of the other files so no dot is plotted. In other instances the same word root will appear in more than one file, but will be ranked differently.
  
-```{r loadTwitter, echo = FALSE}
+```{r loadAllFreq, echo = FALSE}
 All_Top_25_dfm <- rbind(news_Top_25_dfm, blogs_Top_25_dfm, twitter_Top_25_dfm) 
 All_Top_25_dfm$feature <- with(All_Top_25_dfm, reorder(feature, -rank))
 
