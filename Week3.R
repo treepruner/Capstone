@@ -308,16 +308,17 @@ order by phrase, cnt
 ")
 all_coll
 
-# , instr(phrase, ' ',2)  as loc_instr bad syntax
-charindex(' ', phrase) and instr(phrase, ' ')  are the same
-
+# this runs 
 sqldf("select substr(phrase, 1, instr(phrase, ' ') - 1) as word1
-        , substr(phrase, instr(phrase, ' ') + 1, instr(phrase, ' ') -2)  as word2a
-        , substr(phrase, instr(phrase, ' ') + 1, charindex(phrase, ' ', 3) -1)  as word2b
-        , charindex(' ', phrase)  as loc_char
-        , instr(phrase, ' ')  as loc_instr 
+, substr(phrase, instr(phrase, ' ') + 1, charindex(' ', phrase, charindex(' ', phrase) +1)) as last2Words
+, substr(phrase, 1, charindex(' ', phrase, charindex(' ', phrase) +1)) as first2 
+, substr(phrase, charindex(' ', phrase, instr(phrase, ' ') + 1)) as word3
+, phrase
+, cnt 
+from all_coll 
+where phrase like 'presid%' ")
 
-        , phrase
-        , cnt 
-      from all_coll 
+# query
+sqldf("select phrase, cnt 
+      from twitter_coll 
       where phrase like 'presid%' ")
