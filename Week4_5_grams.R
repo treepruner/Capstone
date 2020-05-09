@@ -2,13 +2,14 @@ rm(list=ls())
 require(quanteda)
 require(dplyr)
 require(tidyr)
-require(tidyverse)
 require(tidytext)
+require(tidyverse)
 require(stringr)
 require(sqldf)
 require(data.table)
 require(ggplot2)
 require(corpus)
+
 
 (opt <- quanteda_options()) # threads = 2
 #quanteda_options(verbose = TRUE)
@@ -60,7 +61,7 @@ head(news_sen, 2)  # "Ball was travel editor of the New Orleans Times-Picayune f
 install.packages("corpus")
 
 # tidyverse http://uc-r.github.io/creating-text-features
-news_ngram_list <- 
+news_2gram <- 
   data.table(news_senV) %>%
   rename (newsText = news_senV) %>%
   unnest_tokens(bigram, 'newsText', token = "ngrams", n = 2) %>%
@@ -75,75 +76,53 @@ news_ngram_list <-
           , !str_detect(word2, pattern = "[[:punct:]]") # punctuation
           , !str_detect(word2, pattern = "(.)\\1{2,}")  # 3 or more repeated letters
           , !str_detect(word2, pattern = "\\b(.)\\b")   # single letter words
-          ) %>%
-  # mutate (word = corpus::text_tokens(word, stemmer = "en") %>% unlist()) %>%
-  unite("bigram", c(word1, word2), sep = " ") %>%
-  count(bigram) %>%
-  arrange(desc(n)) %>% 
-  filter( n >= 2) %>%  # remove if < 10 occurances
-  pull(bigram)
-  
-head(news_ngram_list)
+          ) 
+# ggplot(aes(n)) +  geom_histogram() + scale_x_log10() # see low count words
 
-  ggplot(aes(n)) +  geom_histogram() + scale_x_log10() # see lowcount words
+# what do we have?
+head(news_2gram)
+
+# log likelihood ratio test
+# n2 = news bigram, w1 = word1, w2 = word2
+
+# count for bigrams
+cnt_n2w1 <- news_2gram %>%
+  count(word1) #3454
+
+cnt_n2w2 <- news_2gram %>%
+  count(word2) #3618
+
+cnt_n2w12 <- news_2gram %>%
+  count(word1, word2) #5390
+
+N <-nrow(news_2gram)  # 5545
 
 
-head(n_df)
+LL <- cnt_n2w12 %>%
+  left_join(cnt_n2w1, by = "word1") %>%
+  left_join(cnt_n2w2, by = "word2") %>%  # word1       word2           n.x   n.y     n
+  rename(c_w1 = n.y, c_w2 = n, c_w12 = n.x) %>%
+  mutate(
+        p  =  c_w2  / N
+      , p1 =  c_w12 / c_w1
+      , p2 = (c_w2  - c_w12) / (N - c_w1)
+      , LL = log((pbinom(c_w12, c_w1, p)  * pbinom(c_w2 - c_w12, N - c_w1, p ))
+          / 
+                 (pbinom(c_w12, c_w1, p1) * pbinom(c_w2 - c_w12, N - c_w1, p)))
+                               
+  )
+head(LL)
 
 
 
-# Quanteda ngrams
-news_2gram <- data.frame(Tokens = as.character (
-        tokens(corpus(news_senV) 
-        , remove_punct = TRUE 
-        , remove_numbers = TRUE
-        , remove_url = TRUE
-        , remove_symbols = TRUE) %>% 
-        tokens_tolower() %>%
-        tokens_replace(profanity, lemma, valuetype="fixed") %>%
-        tokens_ngrams( n = 2)
-          )
-, stringsAsFactors = FALSE)
-names(news_2gram)[1] <- "2gram"
 
-news_3gram <- data.frame(Tokens = as.character (
-  tokens(corpus(news_senV) 
-         , remove_punct = TRUE 
-         , remove_numbers = TRUE
-         , remove_url = TRUE
-         , remove_symbols = TRUE) %>% 
-    tokens_tolower() %>%
-    tokens_replace(profanity, lemma, valuetype="fixed") %>%
-    tokens_ngrams( n = 3)
-)
-, stringsAsFactors = FALSE)
-names(news_3gram)[1] <- "3gram"
 
-news_4gram <- data.frame(Tokens = as.character (
-  tokens(corpus(news_senV) 
-         , remove_punct = TRUE 
-         , remove_numbers = TRUE
-         , remove_url = TRUE
-         , remove_symbols = TRUE) %>% 
-    tokens_tolower() %>%
-    tokens_replace(profanity, lemma, valuetype="fixed") %>%
-    tokens_ngrams( n = 4)
-)
-, stringsAsFactors = FALSE)
-names(news_4gram)[1] <- "4gram"
 
-news_5gram <- data.frame(Tokens = as.character (
-  tokens(corpus(news_senV) 
-         , remove_punct = TRUE 
-         , remove_numbers = TRUE
-         , remove_url = TRUE
-         , remove_symbols = TRUE) %>% 
-    tokens_tolower() %>%
-    tokens_replace(profanity, lemma, valuetype="fixed") %>%
-    tokens_ngrams( n = 5)
-)
-, stringsAsFactors = FALSE)
-names(news_5gram)[1] <- "5gram"
+
+
+
+
+
 
 
 # combine 
