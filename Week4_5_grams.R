@@ -1,8 +1,14 @@
 rm(list=ls())
 require(quanteda)
 require(dplyr)
+require(tidyr)
+require(tidyverse)
+require(tidytext)
+require(stringr)
 require(sqldf)
 require(data.table)
+require(ggplot2)
+require(corpus)
 
 (opt <- quanteda_options()) # threads = 2
 #quanteda_options(verbose = TRUE)
@@ -50,9 +56,43 @@ rm(newsSample)
 length(news_sen) # 1010
 head(news_sen, 2)  # "Ball was travel editor of the New Orleans Times-Picayune fro..."
                       # "abrettman@oregonian.com ; oregonlive.com/playbooks-profits; ..."
-news_senV <- sapply(news_sen, paste0, collapse="") # turn into a vector for imput to tokens
+# news_senV <- sapply(news_sen, paste0, collapse="") # turn into a vector for imput to tokens
+install.packages("corpus")
 
-# ngrams
+# tidyverse http://uc-r.github.io/creating-text-features
+news_ngram_list <- 
+  data.table(news_senV) %>%
+  rename (newsText = news_senV) %>%
+  unnest_tokens(bigram, 'newsText', token = "ngrams", n = 2) %>%
+  separate(bigram, c("word1", "word2"), sep = " ") %>%
+  filter (  !word1 %in% stop_words$word
+          , !str_detect(word1, pattern = "[[:digit:]]") # words with numbers
+          , !str_detect(word1, pattern = "[[:punct:]]") # punctuation
+          , !str_detect(word1, pattern = "(.)\\1{2,}")  # 3 or more repeated letters
+          , !str_detect(word1, pattern = "\\b(.)\\b")   # single letter words            
+          , !word2 %in% stop_words$word
+          , !str_detect(word2, pattern = "[[:digit:]]") # words with numbers
+          , !str_detect(word2, pattern = "[[:punct:]]") # punctuation
+          , !str_detect(word2, pattern = "(.)\\1{2,}")  # 3 or more repeated letters
+          , !str_detect(word2, pattern = "\\b(.)\\b")   # single letter words
+          ) %>%
+  # mutate (word = corpus::text_tokens(word, stemmer = "en") %>% unlist()) %>%
+  unite("bigram", c(word1, word2), sep = " ") %>%
+  count(bigram) %>%
+  arrange(desc(n)) %>% 
+  filter( n >= 2) %>%  # remove if < 10 occurances
+  pull(bigram)
+  
+head(news_ngram_list)
+
+  ggplot(aes(n)) +  geom_histogram() + scale_x_log10() # see lowcount words
+
+
+head(n_df)
+
+
+
+# Quanteda ngrams
 news_2gram <- data.frame(Tokens = as.character (
         tokens(corpus(news_senV) 
         , remove_punct = TRUE 
@@ -64,45 +104,51 @@ news_2gram <- data.frame(Tokens = as.character (
         tokens_ngrams( n = 2)
           )
 , stringsAsFactors = FALSE)
+names(news_2gram)[1] <- "2gram"
+
+news_3gram <- data.frame(Tokens = as.character (
+  tokens(corpus(news_senV) 
+         , remove_punct = TRUE 
+         , remove_numbers = TRUE
+         , remove_url = TRUE
+         , remove_symbols = TRUE) %>% 
+    tokens_tolower() %>%
+    tokens_replace(profanity, lemma, valuetype="fixed") %>%
+    tokens_ngrams( n = 3)
+)
+, stringsAsFactors = FALSE)
+names(news_3gram)[1] <- "3gram"
+
+news_4gram <- data.frame(Tokens = as.character (
+  tokens(corpus(news_senV) 
+         , remove_punct = TRUE 
+         , remove_numbers = TRUE
+         , remove_url = TRUE
+         , remove_symbols = TRUE) %>% 
+    tokens_tolower() %>%
+    tokens_replace(profanity, lemma, valuetype="fixed") %>%
+    tokens_ngrams( n = 4)
+)
+, stringsAsFactors = FALSE)
+names(news_4gram)[1] <- "4gram"
+
+news_5gram <- data.frame(Tokens = as.character (
+  tokens(corpus(news_senV) 
+         , remove_punct = TRUE 
+         , remove_numbers = TRUE
+         , remove_url = TRUE
+         , remove_symbols = TRUE) %>% 
+    tokens_tolower() %>%
+    tokens_replace(profanity, lemma, valuetype="fixed") %>%
+    tokens_ngrams( n = 5)
+)
+, stringsAsFactors = FALSE)
+names(news_5gram)[1] <- "5gram"
 
 
-news_3gram <- tokens(corpus(news_senV) 
-                     , remove_punct = TRUE 
-                     , remove_numbers = TRUE
-                     , remove_url = TRUE
-                     , remove_symbols = TRUE) %>% 
-  tokens_tolower() %>%
-  tokens_replace(profanity, lemma, valuetype="fixed") %>%
-  tokens_ngrams( n = 3)
-
-news_4gram <- tokens(corpus(news_senV) 
-                     , remove_punct = TRUE 
-                     , remove_numbers = TRUE
-                     , remove_url = TRUE
-                     , remove_symbols = TRUE) %>% 
-  tokens_tolower() %>%
-  tokens_replace(profanity, lemma, valuetype="fixed") %>%
-  tokens_ngrams( n = 4)
-
-news_5gram <- tokens(corpus(news_senV) 
-                     , remove_punct = TRUE 
-                     , remove_numbers = TRUE
-                     , remove_url = TRUE
-                     , remove_symbols = TRUE) %>% 
-  tokens_tolower() %>%
-  tokens_replace(profanity, lemma, valuetype="fixed") %>%
-  tokens_ngrams( n = 5)
+# combine 
 
 
-# what did it output?
-head(news_2gram ); tail(news_2gram)
-class(news_tok) # tokens
-length(news_tok) #1010
-
-news_DF<- as.data.table(sapply(news_tok, paste0, collapse=""))
-news_DF
-
-rm(news_DF, news_corpus, news_V)
 
 # query
 sqldf("select phrase, cnt 
