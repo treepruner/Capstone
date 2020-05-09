@@ -53,14 +53,63 @@ saveRDS(news_sen, "./data/news_sen.rds")
 class(news_sen) # list
 rm(newsSample)
 
-# corpus and cleaning
+
 length(news_sen) # 1010
 head(news_sen, 2)  # "Ball was travel editor of the New Orleans Times-Picayune fro..."
                       # "abrettman@oregonian.com ; oregonlive.com/playbooks-profits; ..."
 # news_senV <- sapply(news_sen, paste0, collapse="") # turn into a vector for imput to tokens
-install.packages("corpus")
+class(news_senV) # character vector
+saveRDS(news_senV, "./data/news_senV.rds")
 
-# tidyverse http://uc-r.github.io/creating-text-features
+rm(news_sen, news_senV)
+
+###################################################### blogs ######################################################
+
+# read in raw blogs file
+blogsPath <- "./data/blogs.rds"
+blogs <- readRDS(blogsPath)
+blogsLines <- length(blogs)
+blogsLines # 899288
+class(blogs) # character
+
+# take a sample and close main file
+set.seed = 941
+sampleSize <- 0.001
+blogsSample <- sample(blogs, size = round(blogsLines * sampleSize), replace = FALSE)
+blogsSample <- iconv(blogsSample, from = "UTF-8", to = "ASCII", sub = "")
+saveRDS(blogsSample, "./data/blogsSample.rds")
+rm("blogs", "blogsPath", "blogsLines")
+
+# Convert to sentances
+system.time(blogs_sen <- lapply(blogsSample,function(x){
+  system.time(theText <- corpus(x))
+  system.time(sentences <- corpus_reshape(theText, to = "sentences", verbose = FALSE))
+  sentences # return to caller
+}))
+
+#    user  system elapsed 
+# 924.67    4.61  935.70 
+saveRDS(blogs_sen, "./data/blogs_sen.rds")
+class(blogs_sen) # list
+rm(blogsSample)
+
+
+length(blogs_sen) # 899
+head(blogs_sen, 2)  # Either with devotion or hatred, with faith or with reason ev..."
+# "Though a concerted counterattack spearheaded by an armoured ..."
+# "This spoke volumes as to the infiltration of Denmark by expe..."
+blogs_senV <- sapply(blogs_sen, paste0, collapse="") # turn into a vector for imput to tokens
+class(blogs_senV) # character vector
+saveRDS(blogs_senV, "./data/blogs_senV.rds")
+
+rm(blogs_sen, blogs_senV)
+
+
+
+# tidyverse 
+# http://uc-r.github.io/creating-text-features
+# tidytextmining.com/ngrams
+
 news_2gram <- 
   data.table(news_senV) %>%
   rename (newsText = news_senV) %>%
@@ -77,6 +126,8 @@ news_2gram <-
           , !str_detect(word2, pattern = "(.)\\1{2,}")  # 3 or more repeated letters
           , !str_detect(word2, pattern = "\\b(.)\\b")   # single letter words
           ) 
+saveRDS(news_2gram, "./data/news_2gram.rds")
+
 # ggplot(aes(n)) +  geom_histogram() + scale_x_log10() # see low count words
 
 # what do we have?
@@ -98,7 +149,7 @@ cnt_n2w12 <- news_2gram %>%
 N <-nrow(news_2gram)  # 5545
 
 
-LL <- cnt_n2w12 %>%
+LL_test_n2 <- cnt_n2w12 %>%
   left_join(cnt_n2w1, by = "word1") %>%
   left_join(cnt_n2w2, by = "word2") %>%  # word1       word2           n.x   n.y     n
   rename(c_w1 = n.y, c_w2 = n, c_w12 = n.x) %>%
@@ -111,10 +162,18 @@ LL <- cnt_n2w12 %>%
                  (pbinom(c_w12, c_w1, p1) * pbinom(c_w2 - c_w12, N - c_w1, p)))
                                
   )
-head(LL)
+head(LL_test_n2)
 
 
-
+u_news_2grams <- LL_test %>%
+  mutate(
+    Chi_value = -2 * LL
+    , pvalue = pchisq(LL, df = 1)) %>%
+  filter(pvalue < 0.05) %>%
+#  select(word1, word2) %>%
+#    unite(bigram, word1, word2, sep = " ")
+  
+head(u_news_2grams)
 
 
 
