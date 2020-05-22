@@ -19,6 +19,27 @@ require(quanteda)
 #quanteda_options(verbose = TRUE)
 quanteda_options(threads = 4)
 
+######################################################
+# profanity - fix records missed in cleaning
+######################################################
+
+# read in
+profanity <- readLines(".\data\badwords.txt", encoding = "UTF-8", skipNul = TRUE,  warn = FALSE)
+
+# raw data examples and counts 
+profanity_example <- head(profanity,2)
+profanity_rowCnt <- length(profanity) 
+class(profanity)
+
+# change to lowercase
+profanity <- tolower(profanity)
+
+# make specific profanity a generic literal
+lemma <- rep("profanity", length(profanity))
+
+profanity_ref <- as.data.frame(cbind(profanity, lemma))
+head(profanity_ref)
+
 
 ######################################################
 # Load 2grams
@@ -37,6 +58,31 @@ head(all_2grams)
 # 1   news         st      louis
 # 2   news      louis      plant
 # 3   news        age    workers
+
+
+######################################################
+# clean 2grams profanity
+######################################################
+all_2grams <- sqldf( c( "update all_2grams
+        set word1 = 'profanity'
+        where word1 = (select p.profanity 
+                        from profanity_ref p
+                        where all_2grams.word1 = p.profanity)",
+                             "select * from all_2grams"))
+
+all_2grams <- sqldf( c( "update all_2grams
+        set word2 = 'profanity'
+        where word2 = (select p.profanity 
+                        from profanity_ref p
+                        where all_2grams.word2 = p.profanity)",
+                             "select * from all_2grams"))
+
+
+
+
+sqldf( "select * from all_2gramss
+where bigram like '%fuck%' 
+order by bigram desc " )
 
 ######################################################
 # Create all_n2grams statistics
@@ -103,11 +149,8 @@ freq_2grams <- LL_test_n2 %>%
   select (word1, word2, c_w12, c_w1, c_w2, bigram) %>%
   arrange (word1, desc(c_w12) )
 
-
-    select(word1, word2) %>%
-      unite(bigram, word1, word2, sep = " ")
-
 head(freq_2grams)
+nrow(freq_2grams)
 class(freq_2grams)  # object pvalue not found
 
 
@@ -122,12 +165,7 @@ class(freq_2grams)  # object pvalue not found
 
 saveRDS(freq_2grams, "./data/freq_2grams")
 
-freq_2grams <- readRDS("./data/freq_2grams")
-head(freq_2grams)
-
 rm(all_2grams, all_2gramsLines, all_2gramsPath, cnt_n2w1, cnt_n2w2, cnt_n2w12, N2, LL_test_n2, freq_2grams)
-
-
 
 
 ######################################################
@@ -143,6 +181,37 @@ all_3grams <- readRDS(all_3gramsPath)
 all_3gramsLines <- nrow(all_3grams)
 all_3gramsLines # 4,635,555
 head(all_3grams)
+
+##############################################################
+# Clearn to fix missed profanity
+##############################################################
+all_3grams <- sqldf( c( "update all_3grams
+        set word1 = 'profanity'
+        where word1 = (select p.profanity 
+                        from profanity_ref p
+                        where all_3grams.word1 = p.profanity)",
+                             "select * from all_3grams"))
+
+all_3grams <- sqldf( c( "update all_3grams
+        set word2 = 'profanity'
+        where word2 = (select p.profanity 
+                        from profanity_ref p
+                        where all_3grams.word2 = p.profanity)",
+                             "select * from all_3grams"))
+
+all_3grams <- sqldf( c( "update all_3grams
+        set word3 = 'profanity'
+        where word3 = (select p.profanity 
+                        from profanity_ref p
+                        where all_3grams.word3 = p.profanity)",
+                             "select * from all_3grams"))
+
+
+
+sqldf( "select * from all_3grams
+where trigram like '%fuck%' 
+order by trigram desc " )
+
 
 
 
@@ -167,92 +236,3 @@ nrow(freq_3grams) # >8 13592; > 4 35674;  > 2 94756 ; >= 2 254850
 
 
  
-########################################### does not work begin ###########################################
-### get an error like an out of memory message when using the all_grams file. Worked with sample file.
-### not sure my formulas make sense anyway!
-
-# log likelihood ratio test
-# n3 =  trigram, w1 = word1, w2 = word2, w3 = word3
-
-# count for trigrams
-cnt_n3w3 <- all_3grams %>%   count(word3) # 194,622
-cnt_n3w12 <- all_3grams %>%   count(word1, word2) # 2,691,782
-cnt_n3w123 <- all_3grams %>%   count(word1, word2, word3) # 3,934,255
-N3 <-nrow(all_3grams)  # 4,635,555
-
-rm(all_3grams)
-
-head(cnt_n3w3)
-head(cnt_n3w12 )
-head(cnt_n3w123)
-
-#  how to rename columns and fix the formulas?
-# word1 word2     word3        n.x   n.y  n.x.x   n.y.y
-# <chr> <chr>     <chr>       <int> <int>  <int>  <int>
-# 1 aaron  standard  time       1    29     37    582
-# 2 aarp   discounts cruise     1     1      4     20
-# 3 aarron pilot     lady       1     1     24     57
-
-# treat first 2 words as single word and follow n2gram LL formula
-#  w12 = w123, w1 = w12, w2 = w3
-
-
-LL_test_n3 <- cnt_n3w123 %>%
-  left_join(cnt_n3w12, by = "word1" , "word2") %>%  # 
-  left_join(cnt_n3w3, by = "word3") %>%  # word1  word2  word3  n.x  n.y  n.x.x  n.y.y
-  rename(c_w12 = n.y, c_w3 = n, c_w123 = n.x) %>%
-  mutate( 
-       p  =  c_w3  / N3
-    , p1  =  c_w123 / c_w12
-    , p2  = (c_w3  - c_w123) / (N3 - c_w12)
-    , LL  = log ( (pbinom(c_w123, c_w12, p)  * pbinom(c_w3 - c_w123, N3 - c_w12, p ))
-                  / 
-                    (pbinom(c_w123, c_w12, p1) * pbinom(c_w3 - c_w123, N3 - c_w12, p)) )
-  )
-
-saveRDS(LL_test_n3, "./data/LL_test_n3.rds")  
-  
-head(LL_test_n3)
-# word1 word2.x  word3   c_w123 word2.y        c_w12  c_w3          p    p1    p2    LL
-# <chr> <chr>    <chr>    <int> <chr>          <int> <int>      <dbl> <dbl> <dbl> <dbl>
-# 1 aa    baseball frieder      1 baseball           2     1 0.00000357   0.5     0 0.288
-# 2 aa    baseball frieder      1 boys               1     1 0.00000357   1       0 0    
-# 3 aa    baseball frieder      1 flight             1     1 0.00000357   1       0 0    
-# 4 aa    baseball frieder      1 frootloop          1     1 0.00000357   1       0 0    
-# 5 aa    baseball frieder      1 fye                1     1 0.00000357   1       0 0    
-# 6 aa    baseball frieder      1 intersectional     2     1 0.00000357   0.5     0 0.288
-
-
-u_n3grams <- LL_test_n3 %>%
-  mutate(
-    Chi_value = -2 * LL
-    , pvalue = pchisq(LL, df = 1)) %>%
-  filter(pvalue < 0.05) %>%
-  #  select(word1, word2) %>%
-  #    unite(bigram, word1, word2, sep = " ")
-
-saveRDS(u_n3grams, "./data/u_n3grams")  
-    
-head(u_n3grams)
-# word1 word2.x  word3   c_w123 word2.y   c_w12  c_w3          p    p1    p2    LL Chi_value pvalue
-# <chr> <chr>    <chr>    <int> <chr>     <int> <int>      <dbl> <dbl> <dbl> <dbl>     <dbl>  <dbl>
-# 1 aa    baseball frieder      1 boys          1     1 0.00000357     1     0     0         0      0
-# 2 aa    baseball frieder      1 flight        1     1 0.00000357     1     0     0         0      0
-# 3 aa    baseball frieder      1 frootloop     1     1 0.00000357     1     0     0         0      0
-# 4 aa    baseball frieder      1 fye           1     1 0.00000357     1     0     0         0      0
-# 5 aa    baseball frieder      1 irukke        1     1 0.00000357     1     0     0         0      0
-# 6 aa    baseball frieder      1 meetings      1     1 0.00000357     1     0     0         0      0
-
- 
-########################################### does not work end ###########################################
-
-
-
-
-
-
-
-
-
-
-
