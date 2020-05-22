@@ -15,19 +15,22 @@ require(data.table)
 require(ggplot2)
 require(quanteda)
 
-(opt <- quanteda_options()) # threads = 2
+
+
 #quanteda_options(verbose = TRUE)
 quanteda_options(threads = 4)
 
 ######################################################
 # profanity - fix records missed in cleaning
 ######################################################
+rm(lemma, profanity_ref, profanity, profanity_rowCnt,profanity_example)
 
 # read in
-profanity <- readLines(".\data\badwords.txt", encoding = "UTF-8", skipNul = TRUE,  warn = FALSE)
+profanity <- readLines("./data/badwords.txt", encoding = "UTF-8", skipNul = TRUE,  warn = FALSE)
 
 # raw data examples and counts 
-profanity_example <- head(profanity,2)
+profanity
+head(profanity,2)
 profanity_rowCnt <- length(profanity) 
 class(profanity)
 
@@ -63,7 +66,7 @@ head(all_2grams)
 ######################################################
 # clean 2grams profanity
 ######################################################
-all_2grams <- sqldf( c( "update all_2grams
+all_2grams <- sqldf(  c( "update all_2grams
         set word1 = 'profanity'
         where word1 = (select p.profanity 
                         from profanity_ref p
@@ -78,11 +81,15 @@ all_2grams <- sqldf( c( "update all_2grams
                              "select * from all_2grams"))
 
 
+saveRDS(all_2grams, "./data/all_2grams.rds")
 
 
-sqldf( "select * from all_2gramss
-where bigram like '%fuck%' 
-order by bigram desc " )
+sqldf( "select distinct word1 from all_2grams
+where word1 like '%fuck%' 
+union all
+select distinct word2 from all_2grams
+where word2 like '%fuck%'
+       ")
 
 ######################################################
 # Create all_n2grams statistics
@@ -92,10 +99,10 @@ order by bigram desc " )
 ## log likelihood ratio test naming convention
 # all = news, blogs and twitter files, n2 =  bigram, w1 = word1, w2 = word2
 
-# count for all_n2gramss
-cnt_n2w1  <- all_2grams %>% count(word1) #270,333
-cnt_n2w2  <- all_2grams %>% count(word2) #279,108
-cnt_n2w12 <- all_2grams %>% count(word1, word2) #5,965,393
+# count for all_n2grams
+cnt_n2w1  <- all_2grams %>% count(word1) #269,957
+cnt_n2w2  <- all_2grams %>% count(word2) #278,762
+cnt_n2w12 <- all_2grams %>% count(word1, word2) #5,958,053
 N2 <-nrow(all_2grams)  # 12,305,888
 
 LL_test_n2 <- cnt_n2w12 %>%
@@ -114,7 +121,7 @@ LL_test_n2 <- cnt_n2w12 %>%
 saveRDS(LL_test_n2, "./data/LL_test_n2.rds")
 
 LL_test_n2[1093:1096, ]
-nrow(LL_test_n2) # 5965393
+nrow(LL_test_n2) # 5958053
 
 # word1       word2           c_w12  c_w1  c_w2     p     p1        p2        LL
 # <chr> <chr>      <int> <int> <int>     <dbl>  <dbl>     <dbl> <dbl>
@@ -127,43 +134,38 @@ nrow(LL_test_n2) # 5965393
 
 
 # where is a good cutoff?
-sqldf(" select count(*) from LL_test_n2 where c_w12 >2") # 624,457
-sqldf(" select count(*) from LL_test_n2 where c_w12 >3") # 408,472
-sqldf(" select count(*) from LL_test_n2 where c_w12 >4") # 299,965
-sqldf(" select count(*) from LL_test_n2 where c_w12 >5") # 235,664
-sqldf(" select count(*) from LL_test_n2 where c_w12 >6") # 192,769
-sqldf(" select count(*) from LL_test_n2 where c_w12 >7") # 162,411
-sqldf(" select count(*) from LL_test_n2 where c_w12 >8") # 139,977
-sqldf(" select count(*) from LL_test_n2 where c_w12 >=9") # 122,566 keeps "zucchini squash"
+sqldf(" select count(*) from LL_test_n2 where c_w12 >=4") #408828
+sqldf(" select count(*) from LL_test_n2 where c_w12 >=6") #235935
+sqldf(" select count(*) from LL_test_n2 where c_w12 >=9") # 140161 "zucchini squash"
 
 LL_test_n2 <- readRDS("./data/LL_test_n2.rds")
 
-# code runs, but can't view table 
+# 
 freq_2grams <- LL_test_n2 %>%
   mutate(
     Chi_value = -2 * LL
     , pvalue = pchisq(LL, df = 1)
     , bigram = paste0(word1, "_", word2)
     ) %>%
-  filter(pvalue < 0.05 & c_w12 >= 9) %>%
+  filter(pvalue < 0.05 ) %>%
   select (word1, word2, c_w12, c_w1, c_w2, bigram) %>%
   arrange (word1, desc(c_w12) )
 
 head(freq_2grams)
-nrow(freq_2grams)
-class(freq_2grams)  # object pvalue not found
+nrow(freq_2grams) # 366302
+class(freq_2grams)  # tbl_df
 
 
 # word1      word2  c_w12  c_w1  c_w2
 # <chr>      <chr>  <int> <int> <int>
-# 1 aarion     penton     9     9    20
-# 2 ablin      chief     19    19  5432
-# 3 action     excuse    12  4115 43522
-# 4 add        people    10  5702 35174
-# 5 added      people    11  3938 35174
-# 6 additional people    10  5142 35174
+# 1 aabergs  stories       1     1  4798 aabergs_stories
+# 2 aabid    surti         1     1     1 aabid_surti    
+# 3 aabor    community     1     1  9473 aabor_community
+# 4 aabs     baltic        1     1    27 aabs_baltic    
+# 5 aachen   germany       3     3   926 aachen_germany 
+# 6 aacounty org           1     1  1985 aacounty_org   
 
-saveRDS(freq_2grams, "./data/freq_2grams")
+saveRDS(freq_2grams, "./data/freq_2grams.rds")
 
 rm(all_2grams, all_2gramsLines, all_2gramsPath, cnt_n2w1, cnt_n2w2, cnt_n2w12, N2, LL_test_n2, freq_2grams)
 
@@ -182,8 +184,16 @@ all_3gramsLines <- nrow(all_3grams)
 all_3gramsLines # 4,635,555
 head(all_3grams)
 
+# source    word1      word2      word3
+# 1   news       st      louis      plant
+# 2   news     mass automotive production
+# 3   news    local     online      sites
+# 4   news   people  applauded      plans
+# 5   news campaign    finance    records
+# 6   news  finance    records   released
+
 ##############################################################
-# Clearn to fix missed profanity
+# Clean to fix missed profanity
 ##############################################################
 all_3grams <- sqldf( c( "update all_3grams
         set word1 = 'profanity'
@@ -206,12 +216,17 @@ all_3grams <- sqldf( c( "update all_3grams
                         where all_3grams.word3 = p.profanity)",
                              "select * from all_3grams"))
 
-
+saveRDS(all_3grams, "./data/all_3grams.rds")
 
 sqldf( "select * from all_3grams
-where trigram like '%fuck%' 
-order by trigram desc " )
-
+where word1 like '%fuck%'
+       union all
+select * from all_3grams
+where word2 like '%fuck%'
+       union all
+select * from all_3grams
+where word3 like '%fuck%'       ")
+       
 
 
 
@@ -221,10 +236,10 @@ freq_3grams <-
         group by word1, word2, word3 
         having count(*) >= 2")
 
-saveRDS(freq_3grams, "./data/freq_3grams")
+saveRDS(freq_3grams, "./data/freq_3grams.rds")
 
 head(freq_3grams); tail(freq_3grams)
-nrow(freq_3grams) # >8 13592; > 4 35674;  > 2 94756 ; >= 2 254850
+nrow(freq_3grams) # >8 13592; > 4 35674;  > 2 94756 ; >= 2 255046
 
 #   word1          word2        word3                        trigram cnt
 # 1    aa       baseball      tuesday            aa_baseball_tuesday   4
@@ -235,4 +250,6 @@ nrow(freq_3grams) # >8 13592; > 4 35674;  > 2 94756 ; >= 2 254850
 # 6    aa intersectional        final        aa_intersectional_final   3
 
 
- 
+rm(all_3grams, all_3gramsLines, all_3gramsPath, freq_3grams)
+rm(lemma, profanity, profanity_ref, profanity_rowCnt)
+
