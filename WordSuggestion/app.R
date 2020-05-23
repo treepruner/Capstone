@@ -68,7 +68,8 @@ server <- function(input, output) {
 
     topSuggestion <- allSuggestions %>%
       filter(Frequency == max(Frequency)) %>%
-      select (Word)
+      rename("Top Suggestion" = Word) %>%
+      select ("Top Suggestion")
     
 
   
