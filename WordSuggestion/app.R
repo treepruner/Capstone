@@ -32,14 +32,16 @@ ui <- fluidPage(
   p("The word generator expects a single word or two words separated by an '_'. "),
   
   hr(),
-    textInput("inWord", "Enter your word"),
-    tags$head(tags$script(src = "message-handler.js")),
-    actionButton("do", "Go"),
-    tableOutput("topSuggestion"),
-    tableOutput("allSuggestions")
+  
+  fluidRow(
+    column(width = 4,
+        textInput("inWord", "Enter your word"),
+        tags$head(tags$script(src = "message-handler.js")),
+        actionButton("do", "Go") ),
+    column(width = 4, tableOutput("topSuggestion")),
+    column(width = 4, tableOutput("allSuggestions") )
+    )
 )
-
-
 # server
 # Define server logic to lookup frequently occuring word
 server <- function(input, output) {
@@ -68,8 +70,8 @@ server <- function(input, output) {
 
     topSuggestion <- allSuggestions %>%
       filter(Frequency == max(Frequency)) %>%
-      rename("Top Suggestion" = Word) %>%
-      select ("Top Suggestion")
+      rename("Top Next Word Suggestion" = Word) %>%
+      select ("Top Next Word Suggestion")
     
 
   
