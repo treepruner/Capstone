@@ -39,7 +39,9 @@ ui <- fluidPage(
         tags$head(tags$script(src = "message-handler.js")),
         actionButton("do", "Go") ),
     column(width = 4, tableOutput("topSuggestion")),
-    column(width = 4, tableOutput("allSuggestions") )
+    column(width = 4, tableOutput("allSuggestions")),
+    column(width = 4, plotOutput("allSuggestionsBarPlot") )
+    
     )
 )
 # server
@@ -78,6 +80,15 @@ server <- function(input, output) {
     output$topSuggestion <- renderTable ( { topSuggestion} )
     
     output$allSuggestions <- renderTable ( { allSuggestions} )
+    
+    output$allSuggestionsBarPlot <-renderPlot({
+      ggplot(data = allSuggestions, aes_string(y = "Word", x = "Frequency"))  +
+        stat_summary(fun.y = sum, geom = "bar",colour="steelblue",fill="steelblue") +
+        geom_bar(stat="identity") +
+        labs(title = "Frequently Associated Words") +
+        theme_classic() +
+        theme(plot.title = element_text(hjust = 0.5))
+    })
     
   })    
 }
