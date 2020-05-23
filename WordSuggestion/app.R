@@ -12,29 +12,32 @@ require(RSQLite)
 require(dplyr)
 
 setwd("C:/Users/testsubject941/Documents/GitHub/Capstone/WordSuggestion")
+dir()
 
 # data
 freq_3grams <- readRDS("freq_3grams.rds")
+freq_2grams <- readRDS("freq_2grams.rds")
 
 # user
 ui <- fluidPage(
     theme = shinytheme("cerulean"),
     titlePanel("Word Suggestion Generator"),
-    p("This application was built on news, blog and twitter reference data to identify words that appear together in either bigrams or trigrams." ),
-    p("The reference data was cleaned."),
-    p("    Profane words were replaced with the literal 'profanity'."),
-      p("   Emojis/emoticons with English equivalents."),
-    p("    Common English stopwords such as a, be, can, do, for, I, the, etc have been removed."),
+    p("The next wprd suggestion generator was built on news, blog and twitter reference data to identify words that appear together in either bigrams or trigrams." ),
+    p("The reference data was cleaned as follows:"),
+    tags$li("Profane, obscene and vulgar words were replaced with the literal 'profanity'."),
+    tags$li("Emojis/emoticons were replaced with English equivalents."),
+    tags$li("Common English stopwords such as a, be, can, do, for, I, the, etc were removed."),
+    p(""),
     p("The word generator expects a single word or two words separated by an '_'. "),
     
     hr(),
     sidebarLayout(
         sidebarPanel(
             
-            textInput("inWord1", "Enter your word")
+            textInput("inWord", "Enter your word")
                     ),
         mainPanel = (
-            tableOutput("word1Suggestions")
+            tableOutput("wordSuggestions")
                     )
                 )
 )
@@ -43,16 +46,31 @@ ui <- fluidPage(
 # Define server logic to lookup frequently occuring word
 server <- function(input, output) {
     
+output$wordSuggestions <- renderTable ( {   
 
-    output$word1Suggestions <- renderTable ( {
-
+  #word1 match
     word1Filter <- freq_3grams %>% 
-        filter(word1 == input$inWord1) %>%
+        filter(word1 == input$inWord) %>%
         arrange(-cnt) %>%
         filter(cnt == max(cnt)) %>%
-        select (cnt, word1, word2, word3)
+        select (cnt, word2) %>%
+        rename(Frequency = cnt, Word = word2) 
+
     
-   })
+   #word2 match
+      word2Filter <- freq_3grams %>% 
+        filter(word2 == input$inWord) %>%
+        arrange(-cnt) %>%
+        filter(cnt == max(cnt)) %>%
+        select (cnt, word3) %>%
+        rename(Frequency = cnt, Word = word3 )
+ 
+   
+  results <- bind_rows(word1Filter, word2Filter) %>%
+    add_row(Frequency = 1, Word = 'profanity') %>%
+    arrange(desc(Frequency))
+    })
+    
     
     # load data from table
     #    loadData <- function( fields, table, SortCol = ' ', whereCls = ' ') {
@@ -61,7 +79,7 @@ server <- function(input, output) {
     #            query <- sprintf("select %s from %s", fields, table)
     #        else
     #            query <- sprintf("select %s from %s where %s", fields, table) 
-        # submit select query and disconnect
+    # submit select query and disconnect
     #        dataDB <- dbGetQuery(db, query)
     #if (SortCol !='') dataDB[order(dataDB[SortCol]),]
     #        else dataDB
