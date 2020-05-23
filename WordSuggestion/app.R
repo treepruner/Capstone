@@ -82,9 +82,8 @@ server <- function(input, output) {
     output$allSuggestions <- renderTable ( { allSuggestions} )
     
     output$allSuggestionsBarPlot <-renderPlot({
-      ggplot(data = allSuggestions, aes_string(y = "Word", x = "Frequency"))  +
-        stat_summary(fun.y = sum, geom = "bar",colour="steelblue",fill="steelblue") +
-        geom_bar(stat="identity") +
+      ggplot(data = allSuggestions, aes_string(x = "Frequency", y = "Word") )  +
+        geom_bar(stat = "identity", fill =  "steelblue4" ) +
         labs(title = "Frequently Associated Words") +
         theme_classic() +
         theme(plot.title = element_text(hjust = 0.5))
