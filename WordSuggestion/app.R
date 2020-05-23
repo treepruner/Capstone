@@ -34,19 +34,25 @@ ui <- fluidPage(
     sidebarLayout(
         sidebarPanel(
             
-            textInput("inWord", "Enter your word")
-                    ),
-        mainPanel = (
+            textInput("inWord", "Enter your word")),
+            tags$head(tags$script(src = "message-handler.js")),
+            actionButton("do", "Submit") ,       
+        
+        mainPanel (
             tableOutput("wordSuggestions")
                     )
                 )
+    
+
 )
 
 # server
 # Define server logic to lookup frequently occuring word
 server <- function(input, output) {
+
+  observeEvent(input$do, {
     
-output$wordSuggestions <- renderTable ( {   
+  output$wordSuggestions <- renderTable ( {   
 
   #word1 match
     word1Filter <- freq_3grams %>% 
@@ -66,27 +72,18 @@ output$wordSuggestions <- renderTable ( {
         rename(Frequency = cnt, Word = word3 )
  
    
-  results <- bind_rows(word1Filter, word2Filter) %>%
+  suggestions <- bind_rows(word1Filter, word2Filter) %>%
     add_row(Frequency = 1, Word = 'profanity') %>%
+    group_by(Word) %>%
+    summarize(Frequency = sum(Frequency)) %>%
     arrange(desc(Frequency))
-    })
-    
-    
-    # load data from table
-    #    loadData <- function( fields, table, SortCol = ' ', whereCls = ' ') {
-    #        # Construct select query
-    #if(WhereCls =='')
-    #            query <- sprintf("select %s from %s", fields, table)
-    #        else
-    #            query <- sprintf("select %s from %s where %s", fields, table) 
-    # submit select query and disconnect
-    #        dataDB <- dbGetQuery(db, query)
-    #if (SortCol !='') dataDB[order(dataDB[SortCol]),]
-    #        else dataDB
-    #}
-    
+  
+  })
 
-}
+    
+ }
+
+)}
    
 # Run the application 
 shinyApp(ui = ui, server = server)
