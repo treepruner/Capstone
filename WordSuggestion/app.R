@@ -39,7 +39,7 @@ ui <- fluidPage(
         tags$head(tags$script(src = "message-handler.js")),
         actionButton("do", "Go") ),
     column(width = 4, tableOutput("topSuggestion")),
-    column(width = 4, tableOutput("allSuggestions")),
+    #column(width = 4, tableOutput("allSuggestions")),
     column(width = 4, plotOutput("allSuggestionsBarPlot") )
     
     )
@@ -86,7 +86,8 @@ server <- function(input, output) {
         geom_bar(stat = "identity", fill =  "steelblue4" ) +
         labs(title = " Words Frequently Associated with Your Word") +
        scale_y_discrete( name = "Suggested Words") +
-        theme(plot.title = element_text(hjust = 0.5))
+        theme( axis.text.y = element_text(face = "bold", size = 14),
+               plot.title = element_text(face = "bold", hjust = 0.5, ))
     })
     
   })    
