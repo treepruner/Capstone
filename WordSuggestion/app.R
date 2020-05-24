@@ -18,7 +18,7 @@ dir()
 
 # data
 freq_3grams <- readRDS("freq_3grams.rds")
-freq_2grams <- readRDS("freq_2grams.rds")
+#freq_2grams <- readRDS("freq_2grams.rds")
 
 # user
 ui <- fluidPage(
@@ -34,7 +34,7 @@ ui <- fluidPage(
   tags$li("Numbers, symbols and extra spaces removed."),
   tags$li("Common English stopwords such as a, be, can, do, for, I, the, etc were removed."),
   p(" "),
-  p("Note: input data will be cleaned in a similar process."),
+  p("Note: input data is cleaned in a similar process."),
   
 
   
