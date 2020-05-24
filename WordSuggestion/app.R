@@ -11,6 +11,7 @@ require(shinythemes)
 require(RSQLite)
 require(dplyr)
 require(ggplot2)
+require(quanteda)
 
 setwd("C:/Users/testsubject941/Documents/GitHub/Capstone/WordSuggestion")
 dir()
@@ -23,13 +24,13 @@ freq_2grams <- readRDS("freq_2grams.rds")
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
   titlePanel("Word Suggestion Generator"),
-  p("The next wprd suggestion generator was built on news, blog and twitter reference data to identify words that appear together in either bigrams or trigrams." ),
+  p("The next word suggestion generator was built on news, blog and twitter reference data to identify words that appear together in either bigrams or trigrams." ),
   p("The reference data was cleaned as follows:"),
   tags$li("Profane, obscene and vulgar words were replaced with the literal 'profanity'."),
   tags$li("Emojis/emoticons were replaced with English equivalents."),
   tags$li("Common English stopwords such as a, be, can, do, for, I, the, etc were removed."),
   p(""),
-  p("The word generator expects a single word or two words separated by an '_'. "),
+  p("The word generator accepts a single word or multiple words, but the prediction is based on the last word. "),
   
   hr(),
   
@@ -49,10 +50,23 @@ ui <- fluidPage(
 server <- function(input, output) {
 
   observeEvent(input$do, {
+    # format input  
+    tok <- tokens(corpus(input$inWord)
+                  , remove_punct = TRUE
+                  , remove_numbers = TRUE
+                  , remove_url = TRUE
+                  , remove_symbols = TRUE) %>% 
+      tokens_select( stopwords('english'), selection = 'remove') %>%
+      tokens_tolower() %>%
+      unlist %>%
+      noquote %>%
+      tail(n=1)
     
+
     #word1 match
     word1Filter <- freq_3grams %>% 
-      filter(word1 == input$inWord) %>%
+      filter(word1 == tok) %>%
+      #filter(word1 == input$inWord) %>%
       arrange(-cnt) %>%
       filter(cnt == max(cnt)) %>%
       select (cnt, word2) %>%
@@ -60,7 +74,8 @@ server <- function(input, output) {
 
     #word2 match
     word2Filter <- freq_3grams %>% 
-      filter(word2 == input$inWord) %>%
+      filter(word2 == tok) %>%
+      #filter(word2 == input$inWord) %>%
       arrange(-cnt) %>%
       filter(cnt == max(cnt)) %>%
       select (cnt, word3) %>%
