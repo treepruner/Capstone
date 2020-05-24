@@ -25,16 +25,16 @@ ui <- fluidPage(
   theme = shinytheme("cerulean"),
   titlePanel("Word Suggestion Generator"),
   
-  p("The word generator accepts a single word or phrase. "), 
+  p("The word generator accepts a single word or phrase, but only uses the last word for the prediction. "), 
   p(" "),
-  "Documentation:",
+  tags$b("Documentation:"),
   p("News, blog and twitter files were used to create reference data to predict words that appear together. The reference data was cleaned as follows:"),
   tags$li("Profane, obscene and vulgar words were replaced with the literal 'profanity'."),
   tags$li("Emojis/emoticons were replaced with English equivalents."),
   tags$li("Numbers, symbols and extra spaces removed."),
   tags$li("Common English stopwords such as a, be, can, do, for, I, the, etc were removed."),
   p(" "),
-  p("Note: input data has been subjected to the same cleaning."),
+  p("Note: input data will be cleaned in a similar process."),
   
 
   
@@ -97,7 +97,6 @@ server <- function(input, output) {
       select ("Top Next Word Suggestion")
     
 
-  
     output$topSuggestion <- renderTable ( { topSuggestion} )
     
     output$allSuggestions <- renderTable ( { allSuggestions} )
@@ -105,10 +104,12 @@ server <- function(input, output) {
     output$allSuggestionsBarPlot <-renderPlot({
       ggplot(data = allSuggestions, aes(x = Frequency, y = reorder(Word, Frequency) ))  +
         geom_bar(stat = "identity", fill =  "steelblue4" ) +
-        labs(title = " Words Frequently Associated with Your Word") +
-       scale_y_discrete( name = "Suggested Words") +
+        # labs(paste (title = " Words Frequently Associated with"), " ", tok) +
+        labs( title = "Words Frequently Associated with:", subtitle = tok) +
+        scale_y_discrete( name = "Suggested Words") +
         theme( axis.text.y = element_text(face = "bold", size = 14),
-               plot.title = element_text(face = "bold", hjust = 0.5 ))
+               plot.title = element_text(face = "bold", hjust = 0.5 ),
+               plot.subtitle = element_text(size = 14,  hjust = 0.5))
     })
     
   })    
