@@ -1,0 +1,76 @@
+Coursera Data Scientist Word Suggestion Capstone Project
+========================================================
+author: Sarah Delaney
+date: 2020-05-24
+autosize: true
+
+
+Reference Data
+========================================================
+News, blog and twitter files were used to create reference data to predict words that appear together. The source files were split into manageable sized files, then cleaned as follows: 
+
+- Profane, obscene and vulgar words were replaced with the literal 'profanity'.
+- Emojis/emoticons were replaced with English equivalents
+- Numbers, symbols, extra spaces and English stopwords were removed.
+
+The separate cleaned files were turned into turned into trigrams and merged back together. Counts of each unique trigram were used to select only trigrams that occurred at least twice. 
+
+How does the prediction model work?
+========================================================
+The model searches for a specific word twice, once in the 1st position, next in the 2nd position. If neither matches, it returns a default of 'profanity'. 
+
+```{r, eval = FALSE}
+    #word1 match
+    word1Filter <- freq_3grams %>% 
+      filter(word1 == tok) %>%
+      #filter(word1 == input$inWord) %>%
+      arrange(-cnt) %>%
+      filter(cnt == max(cnt)) %>%
+      select (cnt, word2) %>%
+      rename(Frequency = cnt, Word = word2) 
+
+    #word2 match
+    word2Filter <- freq_3grams %>% 
+      filter(word2 == tok) %>%
+      #filter(word2 == input$inWord) %>%
+      arrange(-cnt) %>%
+      filter(cnt == max(cnt)) %>%
+      select (cnt, word3) %>%
+      rename(Frequency = cnt, Word = word3 )
+    
+    allSuggestions <- bind_rows(word1Filter, word2Filter) %>%
+      add_row(Frequency = 1, Word = 'profanity') %>%
+      arrange(desc(Frequency))
+
+    topSuggestion <- allSuggestions %>%
+      filter(Frequency == max(Frequency)) %>%
+      rename("Top Next Word Suggestion" = Word) %>%
+      select ("Top Next Word Suggestion")
+```
+
+How does the algorithm perform?
+========================================================
+The model performs poorly based on the Coursera natural language processing quizes. 
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Word Suggestion Generator
+========================================================
+- The Word Suggestion Generator accepts a single word or a phrase.
+- e last word for the prediction. 
+
+Word Generator input cleaning
+========================================================
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Word Generator results
+========================================================
+
+```{r, echo=FALSE}
+plot(cars)
+```

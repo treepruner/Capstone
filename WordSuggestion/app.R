@@ -68,11 +68,9 @@ server <- function(input, output) {
       noquote %>%
       tail(n=1)
     
-
     #word1 match
     word1Filter <- freq_3grams %>% 
       filter(word1 == tok) %>%
-      #filter(word1 == input$inWord) %>%
       arrange(-cnt) %>%
       filter(cnt == max(cnt)) %>%
       select (cnt, word2) %>%
@@ -81,7 +79,6 @@ server <- function(input, output) {
     #word2 match
     word2Filter <- freq_3grams %>% 
       filter(word2 == tok) %>%
-      #filter(word2 == input$inWord) %>%
       arrange(-cnt) %>%
       filter(cnt == max(cnt)) %>%
       select (cnt, word3) %>%
@@ -89,6 +86,8 @@ server <- function(input, output) {
     
     allSuggestions <- bind_rows(word1Filter, word2Filter) %>%
       add_row(Frequency = 1, Word = 'profanity') %>%
+      group_by (Word) %>%
+      summarize(Frequency = sum(Frequency)) %>%
       arrange(desc(Frequency))
 
     topSuggestion <- allSuggestions %>%
