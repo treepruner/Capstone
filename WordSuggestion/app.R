@@ -24,19 +24,25 @@ freq_2grams <- readRDS("freq_2grams.rds")
 ui <- fluidPage(
   theme = shinytheme("cerulean"),
   titlePanel("Word Suggestion Generator"),
-  p("The next word suggestion generator was built on news, blog and twitter reference data to identify words that appear together in either bigrams or trigrams." ),
-  p("The reference data was cleaned as follows:"),
+  
+  p("The word generator accepts a single word or phrase. "), 
+  p(" "),
+  "Documentation:",
+  p("News, blog and twitter files were used to create reference data to predict words that appear together. The reference data was cleaned as follows:"),
   tags$li("Profane, obscene and vulgar words were replaced with the literal 'profanity'."),
   tags$li("Emojis/emoticons were replaced with English equivalents."),
+  tags$li("Numbers, symbols and extra spaces removed."),
   tags$li("Common English stopwords such as a, be, can, do, for, I, the, etc were removed."),
-  p(""),
-  p("The word generator accepts a single word or multiple words, but the prediction is based on the last word. "),
+  p(" "),
+  p("Note: input data has been subjected to the same cleaning."),
+  
+
   
   hr(),
   
   fluidRow(
     column(width = 4,
-        textInput("inWord", "Enter your word"),
+        textInput("inWord", "Enter your word or phrase."),
         tags$head(tags$script(src = "message-handler.js")),
         actionButton("do", "Go") ),
     column(width = 4, tableOutput("topSuggestion")),
@@ -102,7 +108,7 @@ server <- function(input, output) {
         labs(title = " Words Frequently Associated with Your Word") +
        scale_y_discrete( name = "Suggested Words") +
         theme( axis.text.y = element_text(face = "bold", size = 14),
-               plot.title = element_text(face = "bold", hjust = 0.5, ))
+               plot.title = element_text(face = "bold", hjust = 0.5 ))
     })
     
   })    
